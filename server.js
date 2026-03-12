@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
-const SQLiteStore = require('connect-sqlite3')(session);
 const path = require('path');
 const cron = require('node-cron');
 const fs = require('fs');
@@ -27,19 +26,15 @@ app.use('/plans/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Sessions
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-
+// Sessions — using in-memory store (works on all hosts, no native deps)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'vibenote-dev-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
-  store: new SQLiteStore({ db: 'sessions.sqlite', dir: dataDir }),
   cookie: {
     maxAge: 7 * 24 * 60 * 60 * 1000,
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production'
+    secure: false
   }
 }));
 
@@ -98,14 +93,13 @@ async function bootstrap() {
     const count = db.prepare('SELECT COUNT(*) as c FROM agencies').get();
     if (count && count.c === 0) {
       const bcrypt = require('bcrypt');
-      const { v4: uuidv4 } = require('uuid');
       const seedCode = 'VIBENOTE2024';
       const seedHash = bcrypt.hashSync('seedpassword', 10);
       db.prepare(`
         INSERT OR IGNORE INTO agencies (name, email, password_hash, referral_code, plan, site_credits, status)
         VALUES (?, ?, ?, ?, 'agency', 999, 'active')
       `).run('Vibenote Seed', 'seed@vibenote.studio', seedHash, seedCode);
-      console.log(`[BOOTSTRAP] Seed agency created. Referral code: ${seedCode}`);
+      console.log('[BOOTSTRAP] Seed created. Referral code: VIBENOTE2024');
     }
   } catch (e) {
     console.error('[BOOTSTRAP] Failed:', e.message);
@@ -134,12 +128,11 @@ function setupCron() {
 }
 
 // ==========================================
-// START — Init DB first, then listen
+// START
 // ==========================================
 initDb().then(async () => {
   await bootstrap();
   setupCron();
-
   app.listen(PORT, () => {
     console.log(`\n✦ Vibenote.studio running on http://localhost:${PORT}`);
     console.log(`  Admin: http://localhost:${PORT}/admin`);
