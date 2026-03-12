@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plans — Vibenote.studio</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="/dashboard" class="topnav-logo" style="text-decoration:none">← Vibenote<span>.studio</span></a>
+  <div class="topnav-right">
+    <span class="badge badge-<%= agency.plan %>"><%= agency.plan %></span>
+    <div class="agency-avatar"><%= agency.name.charAt(0).toUpperCase() %></div>
+  </div>
+</nav>
+
+<div class="plans-page">
+  <div class="plans-header">
+    <h1>Choose Your Plan</h1>
+    <p style="color:var(--text-dim);font-size:14px">Monthly subscription. Cancel anytime. Credits reset every month.</p>
+  </div>
+
+  <% if (reason === 'nocredits') { %>
+  <div class="alert alert-info" style="margin-bottom:28px;max-width:700px;margin-left:auto;margin-right:auto">
+    You've used all your site credits for this month. Upgrade to generate more websites.
+  </div>
+  <% } %>
+
+  <div class="plans-grid">
+    <!-- Starter -->
+    <div class="plan-card">
+      <div class="plan-name">Starter</div>
+      <div class="plan-price"><%= plans.starter.display %></div>
+      <div class="plan-cycle">per month</div>
+      <ul class="plan-features">
+        <li>1 site credit / month</li>
+        <li>AI-powered generation</li>
+        <li>Chat-based editing</li>
+        <li>SFTP deployment</li>
+        <li>Referral credits</li>
+      </ul>
+      <% if (agency.plan === 'starter') { %>
+      <button class="btn btn-outline btn-block" disabled>Current Plan</button>
+      <% } else { %>
+      <button class="btn btn-outline btn-block" onclick="subscribePlan('starter', '<%= plans.starter.planId %>')">Subscribe →</button>
+      <% } %>
+    </div>
+
+    <!-- Growth -->
+    <div class="plan-card popular">
+      <div class="plan-name">Growth</div>
+      <div class="plan-price"><%= plans.growth.display %></div>
+      <div class="plan-cycle">per month</div>
+      <ul class="plan-features">
+        <li>10 site credits / month</li>
+        <li>Everything in Starter</li>
+        <li>Priority AI generation</li>
+        <li>White-label output</li>
+        <li>Batch projects</li>
+      </ul>
+      <% if (agency.plan === 'growth') { %>
+      <button class="btn btn-gold btn-block" disabled>Current Plan</button>
+      <% } else { %>
+      <button class="btn btn-gold btn-block" onclick="subscribePlan('growth', '<%= plans.growth.planId %>')">Subscribe →</button>
+      <% } %>
+    </div>
+
+    <!-- Agency -->
+    <div class="plan-card">
+      <div class="plan-name">Agency</div>
+      <div class="plan-price"><%= plans.agency.display %></div>
+      <div class="plan-cycle">per month</div>
+      <ul class="plan-features">
+        <li>50 site credits / month</li>
+        <li>Everything in Growth</li>
+        <li>Dedicated support</li>
+        <li>Custom onboarding</li>
+        <li>Reseller rights</li>
+      </ul>
+      <% if (agency.plan === 'agency') { %>
+      <button class="btn btn-outline btn-block" disabled>Current Plan</button>
+      <% } else { %>
+      <button class="btn btn-outline btn-block" onclick="subscribePlan('agency', '<%= plans.agency.planId %>')">Subscribe →</button>
+      <% } %>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:48px">
+    <p style="font-size:12px;color:var(--text-muted)">All plans billed monthly via Razorpay. Secure payment. Cancel anytime from your dashboard.</p>
+  </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="/js/main.js"></script>
+</body>
+</html>

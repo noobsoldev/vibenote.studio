@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Vibenote.studio</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <span class="topnav-logo">Vibenote<span>.studio</span></span>
+  <div class="topnav-right">
+    <span class="credits-badge">
+      <%= agency.site_credits %> / <%= planLimit %> credits
+    </span>
+    <span class="badge badge-<%= agency.plan %>"><%= agency.plan %></span>
+    <div class="agency-avatar"><%= agency.name.charAt(0).toUpperCase() %></div>
+    <a href="/logout" class="btn btn-ghost btn-sm">Sign Out</a>
+  </div>
+</nav>
+
+<div class="dashboard-main">
+  <div class="dashboard-header">
+    <h1>Welcome back, <%= agency.name %> 👋</h1>
+    <p>You have <strong style="color:var(--gold)"><%= agency.site_credits %></strong> site credit<%= agency.site_credits !== 1 ? 's' : '' %> remaining this month.</p>
+  </div>
+
+  <!-- Projects -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <h2 style="font-size:15px;font-weight:700">Your Projects</h2>
+    <% if (agency.site_credits > 0) { %>
+    <a href="/projects/new" class="btn btn-gold btn-sm">+ New Project</a>
+    <% } else { %>
+    <a href="/plans" class="btn btn-outline btn-sm">Upgrade for More Credits</a>
+    <% } %>
+  </div>
+
+  <div class="projects-grid">
+    <% if (projects.length === 0) { %>
+    <% if (agency.site_credits > 0) { %>
+    <a href="/projects/new" class="new-project-card" style="text-decoration:none">
+      <div class="new-project-icon">+</div>
+      <div class="new-project-label">Start Your First Project</div>
+      <div style="font-size:11px;color:var(--text-muted)">Fill the client brief and generate a website</div>
+    </a>
+    <% } else { %>
+    <div class="card" style="grid-column:1/-1;text-align:center;padding:48px">
+      <p style="font-size:14px;margin-bottom:16px">You've used all your site credits for this month.</p>
+      <a href="/plans" class="btn btn-gold">Upgrade Plan →</a>
+    </div>
+    <% } %>
+    <% } else { %>
+    <% projects.forEach(project => { %>
+    <div class="project-card">
+      <div class="project-card-header">
+        <div>
+          <div class="project-name"><%= project.client_name %></div>
+          <div class="project-industry"><%= project.industry || 'No industry set' %></div>
+        </div>
+        <span class="badge badge-<%= project.status %>"><%= project.status %></span>
+      </div>
+      <div class="project-meta">
+        <span class="project-date">Updated <%= new Date(project.updated_at).toLocaleDateString('en-IN') %></span>
+        <% if (project.deployment_url) { %>
+        <a href="<%= project.deployment_url %>" target="_blank" style="font-size:11px;color:var(--green)">↗ Live</a>
+        <% } %>
+      </div>
+      <div class="project-actions">
+        <% if (project.status === 'draft') { %>
+        <a href="/projects/<%= project.id %>/onboarding" class="btn btn-ghost btn-sm">Continue →</a>
+        <% } else { %>
+        <a href="/generate/<%= project.id %>/editor" class="btn btn-ghost btn-sm">Edit</a>
+        <% if (project.status !== 'live') { %>
+        <button class="btn btn-gold btn-sm" onclick="openDeployModal(<%= project.id %>)">Deploy</button>
+        <% } else { %>
+        <button class="btn btn-outline btn-sm" onclick="openDeployModal(<%= project.id %>)">Redeploy</button>
+        <% } %>
+        <% } %>
+        <button class="btn btn-danger btn-sm" onclick="deleteProject(<%= project.id %>)" title="Delete">✕</button>
+      </div>
+    </div>
+    <% }); %>
+    <% if (agency.site_credits > 0) { %>
+    <a href="/projects/new" class="new-project-card" style="text-decoration:none">
+      <div class="new-project-icon">+</div>
+      <div class="new-project-label">New Project</div>
+    </a>
+    <% } %>
+    <% } %>
+  </div>
+
+  <!-- Referral -->
+  <div class="referral-box">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:4px">Your Referral Link</h3>
+        <p style="font-size:12px;color:var(--text-dim)">Share this link. When someone joins and upgrades, you earn +1 site credit.</p>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:22px;font-weight:700;color:var(--gold)"><%= referrals.length %></div>
+        <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Referrals</div>
+      </div>
+    </div>
+    <div class="referral-link-row">
+      <input class="referral-link-input" value="<%= baseUrl %>/signup?ref=<%= agency.referral_code %>" readonly id="referralInput">
+      <button class="btn btn-gold btn-sm" onclick="copyReferralLink('<%= baseUrl %>/signup?ref=<%= agency.referral_code %>')">Copy</button>
+    </div>
+    <% if (referrals.length > 0) { %>
+    <div style="margin-top:14px">
+      <% referrals.forEach(r => { %>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <span style="color:var(--text-dim)"><%= r.referred_name %> (<%= r.referred_email %>)</span>
+        <span class="badge <%= r.converted ? 'badge-live' : 'badge-draft' %>"><%= r.converted ? 'Converted' : 'Signed up' %></span>
+      </div>
+      <% }); %>
+    </div>
+    <% } %>
+  </div>
+
+  <!-- Plan upgrade -->
+  <% if (agency.plan === 'free' || agency.plan === 'starter') { %>
+  <div class="card" style="margin-top:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+    <div>
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:4px">Upgrade Your Plan</h3>
+      <p style="font-size:12px;color:var(--text-dim)">Get more site credits and unlock team features.</p>
+    </div>
+    <a href="/plans" class="btn btn-gold">View Plans →</a>
+  </div>
+  <% } %>
+
+  <!-- SFTP Settings -->
+  <div class="card" style="margin-top:24px">
+    <h3 style="font-size:14px;font-weight:700;margin-bottom:4px">Deployment Settings (SFTP)</h3>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px">Configure your hosting server for one-click deployment.</p>
+    <form id="sftpForm">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">SFTP Host</label>
+          <input type="text" name="sftp_host" class="form-control" value="<%= agency.sftp_host || '' %>" placeholder="ftp.yourdomain.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input type="text" name="sftp_user" class="form-control" value="<%= agency.sftp_user || '' %>" placeholder="u12345678">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" name="sftp_pass" class="form-control" value="<%= agency.sftp_pass || '' %>" placeholder="••••••••">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Base Path</label>
+          <input type="text" name="sftp_base_path" class="form-control" value="<%= agency.sftp_base_path || '/public_html' %>" placeholder="/public_html">
+        </div>
+      </div>
+      <button type="button" class="btn btn-gold btn-sm" onclick="saveSFTP()">Save Settings</button>
+    </form>
+  </div>
+</div>
+
+<!-- Deploy Modal -->
+<div class="modal-overlay" id="deployModal">
+  <div class="modal">
+    <div class="modal-title">Deploy Website</div>
+    <div class="modal-desc">Upload to your Hostinger server via SFTP.</div>
+    <div class="deploy-steps" id="deploySteps"></div>
+    <div id="deployUrl"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="hideDeployModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/main.js"></script>
+<script>
+let deployingPid = null;
+
+function openDeployModal(pid) {
+  deployingPid = pid;
+  document.getElementById('deploySteps').innerHTML = '';
+  document.getElementById('deployUrl').innerHTML = '';
+  showDeployModal();
+  deployProject(pid);
+}
+
+function hideDeployModal() {
+  document.getElementById('deployModal').classList.remove('show');
+}
+
+async function deleteProject(pid) {
+  if (!confirm('Delete this project? This cannot be undone.')) return;
+  const res = await fetch('/projects/' + pid, { method: 'DELETE' });
+  const data = await res.json();
+  if (data.success) { showToast('Project deleted', 'success'); setTimeout(() => location.reload(), 800); }
+  else showToast(data.error || 'Delete failed', 'error');
+}
+
+async function saveSFTP() {
+  const form = document.getElementById('sftpForm');
+  const data = {};
+  new FormData(form).forEach((v, k) => data[k] = v);
+  const res = await fetch('/dashboard/profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  const result = await res.json();
+  if (result.success) showToast('SFTP settings saved', 'success');
+  else showToast(result.error || 'Save failed', 'error');
+}
+</script>
+</body>
+</html>

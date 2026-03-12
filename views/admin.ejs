@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Vibenote.studio</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<% if (view === 'login') { %>
+<!-- ADMIN LOGIN -->
+<div class="auth-page">
+  <div class="auth-box">
+    <div class="auth-logo">Vibenote<span>.studio</span></div>
+    <div class="auth-subtitle">Admin Panel</div>
+    <div class="auth-title">Admin Sign In</div>
+    <% if (error) { %>
+    <div class="alert alert-error">⚠ <%= error %></div>
+    <% } %>
+    <form method="POST" action="/admin/login">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" name="email" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-control" required>
+      </div>
+      <button type="submit" class="btn btn-gold btn-block">Sign In →</button>
+    </form>
+  </div>
+</div>
+
+<% } else { %>
+<!-- ADMIN DASHBOARD -->
+<div class="admin-layout">
+  <div class="admin-sidebar">
+    <div class="admin-logo">Vibenote Admin</div>
+    <div class="admin-nav">
+      <div class="admin-nav-item active" data-tab="overview" onclick="showAdminTab('overview')">📊 Overview</div>
+      <div class="admin-nav-item" data-tab="agencies" onclick="showAdminTab('agencies')">🏢 Agencies</div>
+      <div class="admin-nav-item" data-tab="projects" onclick="showAdminTab('projects')">🌐 Projects</div>
+      <div class="admin-nav-item" data-tab="referrals" onclick="showAdminTab('referrals')">🔗 Referrals</div>
+      <div style="margin-top:auto;padding:16px 12px;border-top:1px solid var(--border)">
+        <a href="/admin/logout" class="btn btn-ghost btn-sm btn-block" style="font-size:11px">Sign Out</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-main">
+
+    <!-- OVERVIEW -->
+    <div class="admin-tab-panel" id="tab-overview">
+      <div class="section-title">Platform Overview</div>
+      <div class="admin-stats">
+        <div class="stat-card"><div class="stat-value"><%= data.stats.totalAgencies %></div><div class="stat-label">Total Agencies</div></div>
+        <div class="stat-card"><div class="stat-value"><%= data.stats.activeAgencies %></div><div class="stat-label">Active Agencies</div></div>
+        <div class="stat-card"><div class="stat-value"><%= data.stats.totalProjects %></div><div class="stat-label">Total Projects</div></div>
+        <div class="stat-card"><div class="stat-value"><%= data.stats.generatedProjects %></div><div class="stat-label">Sites Generated</div></div>
+        <div class="stat-card"><div class="stat-value"><%= data.stats.liveProjects %></div><div class="stat-label">Sites Live</div></div>
+        <div class="stat-card"><div class="stat-value"><%= data.stats.totalReferrals %></div><div class="stat-label">Total Referrals</div></div>
+      </div>
+    </div>
+
+    <!-- AGENCIES -->
+    <div class="admin-tab-panel" id="tab-agencies" style="display:none">
+      <div class="section-title">All Agencies</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Agency</th><th>Email</th><th>Plan</th><th>Credits</th><th>Status</th><th>Referral Code</th><th>Joined</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% data.agencies.forEach(a => { %>
+            <tr>
+              <td style="color:var(--text);font-weight:600"><%= a.name %></td>
+              <td><%= a.email %></td>
+              <td><span class="badge badge-<%= a.plan %>"><%= a.plan %></span></td>
+              <td style="color:var(--gold)"><%= a.site_credits %></td>
+              <td><span class="badge <%= a.status === 'active' ? 'badge-live' : 'badge-draft' %>"><%= a.status %></span></td>
+              <td style="font-family:monospace;font-size:11px;color:var(--text-muted)"><%= a.referral_code || '—' %></td>
+              <td><%= new Date(a.created_at).toLocaleDateString('en-IN') %></td>
+              <td style="display:flex;gap:6px;flex-wrap:wrap">
+                <% if (a.status !== 'suspended') { %>
+                <button class="btn btn-danger btn-sm" onclick="setAgencyStatus(<%= a.id %>,'suspended')">Suspend</button>
+                <% } else { %>
+                <button class="btn btn-ghost btn-sm" onclick="setAgencyStatus(<%= a.id %>,'active')">Restore</button>
+                <% } %>
+                <button class="btn btn-outline btn-sm" onclick="addCredits(<%= a.id %>)">+Credits</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteAgency(<%= a.id %>)">Delete</button>
+              </td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PROJECTS -->
+    <div class="admin-tab-panel" id="tab-projects" style="display:none">
+      <div class="section-title">All Projects</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Client</th><th>Agency</th><th>Industry</th><th>Status</th><th>Deployment</th><th>Updated</th></tr>
+          </thead>
+          <tbody>
+            <% data.projects.forEach(p => { %>
+            <tr>
+              <td style="color:var(--text);font-weight:600"><%= p.client_name %></td>
+              <td><%= p.agency_name %></td>
+              <td><%= p.industry || '—' %></td>
+              <td><span class="badge badge-<%= p.status %>"><%= p.status %></span></td>
+              <td><% if (p.deployment_url) { %><a href="<%= p.deployment_url %>" target="_blank" style="font-size:11px;color:var(--green)">↗ <%= p.deployment_url.substring(0,30) %>...</a><% } else { %>—<% } %></td>
+              <td><%= new Date(p.updated_at).toLocaleDateString('en-IN') %></td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REFERRALS -->
+    <div class="admin-tab-panel" id="tab-referrals" style="display:none">
+      <div class="section-title">Referral Chains</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr><th>Referrer</th><th>Referred</th><th>Converted</th><th>Credit Awarded</th><th>Date</th></tr>
+          </thead>
+          <tbody>
+            <% data.referrals.forEach(r => { %>
+            <tr>
+              <td style="color:var(--text)"><%= r.referrer_name %></td>
+              <td><%= r.referred_name %></td>
+              <td><span class="badge <%= r.converted ? 'badge-live' : 'badge-draft' %>"><%= r.converted ? 'Yes' : 'No' %></span></td>
+              <td><span class="badge <%= r.credit_awarded ? 'badge-live' : 'badge-draft' %>"><%= r.credit_awarded ? 'Awarded' : 'Pending' %></span></td>
+              <td><%= new Date(r.created_at).toLocaleDateString('en-IN') %></td>
+            </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/js/main.js"></script>
+<script>
+showAdminTab('overview');
+
+async function setAgencyStatus(id, status) {
+  const res = await fetch(`/admin/agency/${id}/status`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status}) });
+  const d = await res.json();
+  if (d.success) { showToast('Status updated', 'success'); setTimeout(() => location.reload(), 800); }
+  else showToast(d.error || 'Failed', 'error');
+}
+
+async function addCredits(id) {
+  const n = prompt('How many credits to add?', '1');
+  if (!n) return;
+  const res = await fetch(`/admin/agency/${id}/credits`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({credits: parseInt(n)}) });
+  const d = await res.json();
+  if (d.success) { showToast('Credits added', 'success'); setTimeout(() => location.reload(), 800); }
+  else showToast(d.error || 'Failed', 'error');
+}
+
+async function deleteAgency(id) {
+  if (!confirm('Permanently delete this agency and all their projects?')) return;
+  const res = await fetch(`/admin/agency/${id}`, { method:'DELETE' });
+  const d = await res.json();
+  if (d.success) { showToast('Agency deleted', 'success'); setTimeout(() => location.reload(), 800); }
+  else showToast(d.error || 'Failed', 'error');
+}
+</script>
+<% } %>
+
+</body>
+</html>

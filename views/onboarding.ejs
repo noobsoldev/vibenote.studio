@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Onboarding — Vibenote.studio</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="/dashboard" class="topnav-logo" style="text-decoration:none">← Vibenote<span>.studio</span></a>
+  <div class="topnav-right">
+    <span style="font-size:12px;color:var(--text-muted)">Project: <strong style="color:var(--text)"><%= project.client_name %></strong></span>
+  </div>
+</nav>
+
+<div class="onboarding-page">
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="step-dots">
+      <% ['Business','Services','Brand','Assets','Contact','SEO','Social','Review'].forEach((s, i) => { %>
+      <div class="step-dot" id="dot_<%= i %>">
+        <div class="step-dot-circle"><%= i + 1 %></div>
+        <div class="step-dot-label"><%= s %></div>
+      </div>
+      <% }); %>
+    </div>
+  </div>
+
+  <!-- ===== STEP 1: BUSINESS INFO ===== -->
+  <div class="step-panel" id="step_0">
+    <div class="step-header"><h2>Business Information</h2><p>Tell us about your client's business.</p></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Business Name <span class="req">*</span></label>
+        <input type="text" class="form-control" data-field="client_name" placeholder="e.g. Green River Camp" value="<%= formData.client_name || '' %>">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Industry <span class="req">*</span></label>
+        <select class="form-control" data-field="industry">
+          <option value="">Select industry</option>
+          <% ['Hospitality','Restaurant & Food','Retail & E-commerce','Healthcare','Education','Real Estate','Technology','Finance','Beauty & Wellness','Travel & Tourism','Events','Construction','Legal','Fitness','Photography','Other'].forEach(ind => { %>
+          <option value="<%= ind %>" <%= formData.industry === ind ? 'selected' : '' %>><%= ind %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Tagline / Slogan</label>
+        <input type="text" class="form-control" data-field="tagline" placeholder="e.g. Where nature meets luxury" value="<%= formData.tagline || '' %>">
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Business Description</label>
+        <textarea class="form-control" data-field="description" placeholder="What does the business do? What makes it special?"><%= formData.description || '' %></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Year Established</label>
+        <input type="text" class="form-control" data-field="year_established" placeholder="e.g. 2019" value="<%= formData.year_established || '' %>">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Location / City</label>
+        <input type="text" class="form-control" data-field="location" placeholder="e.g. Rishikesh, Uttarakhand" value="<%= formData.location || '' %>">
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Target Audience</label>
+        <input type="text" class="form-control" data-field="target_audience" placeholder="e.g. Couples, families, corporate groups aged 25-45" value="<%= formData.target_audience || '' %>">
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Unique Selling Points (USPs)</label>
+        <div class="tag-input-wrap" id="usp_wrap">
+          <input class="tag-real-input" placeholder="Type a USP and press Enter...">
+        </div>
+        <input type="hidden" id="usps_hidden" data-field="usps" data-tags="true" value="<%= JSON.stringify(formData.usps || []) %>">
+        <div class="form-hint">Press Enter to add each USP</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STEP 2: SERVICES ===== -->
+  <div class="step-panel" id="step_1">
+    <div class="step-header"><h2>Services & Website Sections</h2><p>What does the client offer, and what pages should the site have?</p></div>
+    <div class="form-group">
+      <label class="form-label">Services Offered</label>
+      <div class="tag-input-wrap" id="services_wrap">
+        <input class="tag-real-input" placeholder="Type a service and press Enter...">
+      </div>
+      <input type="hidden" id="services_hidden" data-field="services" data-tags="true" value="<%= JSON.stringify(formData.services || []) %>">
+    </div>
+    <div class="form-grid">
+      <div class="form-group col-span-2">
+        <label class="form-label">Service Descriptions</label>
+        <textarea class="form-control" data-field="service_descriptions" placeholder="Briefly describe each service..."><%= formData.service_descriptions || '' %></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Price Range</label>
+        <input type="text" class="form-control" data-field="price_range" placeholder="e.g. ₹5,000 – ₹25,000 per night" value="<%= formData.price_range || '' %>">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pricing Display</label>
+        <select class="form-control" data-field="pricing_display">
+          <option value="hide" <%= formData.pricing_display === 'hide' ? 'selected' : '' %>>Don't show pricing</option>
+          <option value="range" <%= formData.pricing_display === 'range' ? 'selected' : '' %>>Show price range</option>
+          <option value="exact" <%= formData.pricing_display === 'exact' ? 'selected' : '' %>>Show exact prices</option>
+          <option value="starting" <%= formData.pricing_display === 'starting' ? 'selected' : '' %>>Show starting price</option>
+        </select>
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Special Offers / Promotions</label>
+        <input type="text" class="form-control" data-field="special_offers" placeholder="e.g. 20% off on weekday bookings" value="<%= formData.special_offers || '' %>">
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:8px">
+      <label class="form-label" style="margin-bottom:12px">Website Sections to Include</label>
+      <div class="sections-grid">
+        <% ['Hero','About','Services','Gallery','Pricing','Testimonials','FAQ','Team','Contact Form','Map','Blog','Booking Form','Video','Stats'].forEach(s => { %>
+        <div class="section-chip <%= (formData.sections || []).includes(s) ? 'selected' : '' %>" data-section="<%= s %>" onclick="toggleSection(this)">
+          <span class="chip-check"><%= (formData.sections || []).includes(s) ? '✓' : '' %></span><%= s %>
+        </div>
+        <% }); %>
+      </div>
+      <input type="hidden" id="sectionsInput" data-field="sections" value="<%= JSON.stringify(formData.sections || ['Hero','About','Services','Gallery','Testimonials','Contact Form']) %>">
+    </div>
+  </div>
+
+  <!-- ===== STEP 3: BRAND ===== -->
+  <div class="step-panel" id="step_2">
+    <div class="step-header"><h2>Brand & Style</h2><p>Define the visual identity and tone.</p></div>
+    <div class="form-group">
+      <label class="form-label" style="margin-bottom:12px">Brand Tone</label>
+      <div class="tone-grid">
+        <% [['Professional','💼'],['Luxury','✨'],['Natural','🌿'],['Bold','⚡'],['Friendly','😊'],['Creative','🎨'],['Minimal','◻'],['Playful','🎉']].forEach(([tone, icon]) => { %>
+        <div class="tone-card <%= formData.tone === tone ? 'selected' : '' %>" data-tone="<%= tone %>" onclick="selectTone(this)">
+          <div class="tone-card-icon"><%= icon %></div>
+          <div class="tone-card-label"><%= tone %></div>
+        </div>
+        <% }); %>
+      </div>
+      <input type="hidden" id="toneInput" data-field="tone" value="<%= formData.tone || '' %>">
+    </div>
+    <div class="form-group" style="margin-top:20px">
+      <label class="form-label">Brand Colors</label>
+      <div class="form-grid" style="margin-top:8px">
+        <% [['color_primary','Primary','#1a3a2a'],['color_accent','Accent','#c9a84c'],['color_bg','Background','#0a0a0a'],['color_text','Text','#e8e8e8']].forEach(([field, label, def]) => { %>
+        <div class="form-group">
+          <label class="form-label"><%= label %></label>
+          <div class="color-picker-row">
+            <div class="color-swatch-btn">
+              <input type="color" id="cp_<%= field %>" value="<%= formData[field] || def %>">
+            </div>
+            <input type="text" class="form-control color-hex-input" id="hex_<%= field %>" data-field="<%= field %>" value="<%= formData[field] || def %>" placeholder="<%= def %>">
+          </div>
+        </div>
+        <% }); %>
+      </div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Font Preference</label>
+        <select class="form-control" data-field="font_preference">
+          <option value="Poppins" <%= formData.font_preference === 'Poppins' ? 'selected' : '' %>>Poppins (Clean, Modern)</option>
+          <option value="Playfair Display" <%= formData.font_preference === 'Playfair Display' ? 'selected' : '' %>>Playfair Display (Elegant)</option>
+          <option value="Montserrat" <%= formData.font_preference === 'Montserrat' ? 'selected' : '' %>>Montserrat (Bold)</option>
+          <option value="Lora" <%= formData.font_preference === 'Lora' ? 'selected' : '' %>>Lora (Classic)</option>
+          <option value="Raleway" <%= formData.font_preference === 'Raleway' ? 'selected' : '' %>>Raleway (Stylish)</option>
+          <option value="Inter" <%= formData.font_preference === 'Inter' ? 'selected' : '' %>>Inter (Minimal)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Design Style</label>
+        <select class="form-control" data-field="design_style">
+          <option value="Modern Minimal" <%= formData.design_style === 'Modern Minimal' ? 'selected' : '' %>>Modern Minimal</option>
+          <option value="Luxury Premium" <%= formData.design_style === 'Luxury Premium' ? 'selected' : '' %>>Luxury Premium</option>
+          <option value="Bold & Vibrant" <%= formData.design_style === 'Bold & Vibrant' ? 'selected' : '' %>>Bold & Vibrant</option>
+          <option value="Earthy & Organic" <%= formData.design_style === 'Earthy & Organic' ? 'selected' : '' %>>Earthy & Organic</option>
+          <option value="Corporate Clean" <%= formData.design_style === 'Corporate Clean' ? 'selected' : '' %>>Corporate Clean</option>
+          <option value="Playful & Fun" <%= formData.design_style === 'Playful & Fun' ? 'selected' : '' %>>Playful & Fun</option>
+        </select>
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Competitor / Inspiration Sites</label>
+        <input type="text" class="form-control" data-field="inspiration_sites" placeholder="e.g. airbnb.com, wildernest.in" value="<%= formData.inspiration_sites || '' %>">
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STEP 4: ASSETS ===== -->
+  <div class="step-panel" id="step_3">
+    <div class="step-header"><h2>Logo & Assets</h2><p>Upload the client's logo and website images.</p></div>
+    <div class="form-group">
+      <label class="form-label">Logo</label>
+      <div class="upload-zone" onclick="document.getElementById('logoInput').click()">
+        <div class="upload-zone-icon">🖼</div>
+        <div class="upload-zone-text"><strong>Click to upload logo</strong><br>SVG, PNG, JPG — transparent PNG preferred</div>
+      </div>
+      <input type="file" id="logoInput" accept="image/*" style="display:none">
+      <div id="logoPreview" style="margin-top:10px">
+        <% if (formData.logo_base64) { %>
+        <img src="<%= formData.logo_base64 %>" style="max-height:60px;border-radius:6px;border:1px solid var(--border)">
+        <% } %>
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:4px">
+      <label class="form-label">Photos & Assets <span style="color:var(--text-muted);font-weight:400">(up to 50)</span></label>
+      <div class="upload-zone" onclick="document.getElementById('assetsInput').click()">
+        <div class="upload-zone-icon">📸</div>
+        <div class="upload-zone-text"><strong>Click to upload images</strong><br>Hero photos, gallery, team, products</div>
+      </div>
+      <input type="file" id="assetsInput" accept="image/*" multiple style="display:none">
+      <div id="assetsPreview" class="asset-preview-grid">
+        <% (formData.asset_images || []).forEach(img => { %>
+        <div class="asset-thumb"><img src="<%= img %>"></div>
+        <% }); %>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Asset Notes</label>
+      <input type="text" class="form-control" data-field="asset_notes" placeholder="e.g. First image is hero, use second for about section" value="<%= formData.asset_notes || '' %>">
+    </div>
+  </div>
+
+  <!-- ===== STEP 5: CONTACT ===== -->
+  <div class="step-panel" id="step_4">
+    <div class="step-header"><h2>Contact Information</h2><p>How should visitors reach the client?</p></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Phone Number</label>
+        <input type="tel" class="form-control" data-field="phone" placeholder="+91 98765 43210" value="<%= formData.phone || '' %>">
+      </div>
+      <div class="form-group">
+        <label class="form-label">WhatsApp Number</label>
+        <input type="tel" class="form-control" data-field="whatsapp" placeholder="+91 98765 43210" value="<%= formData.whatsapp || '' %>">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" class="form-control" data-field="email" placeholder="hello@business.com" value="<%= formData.email || '' %>">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Domain / Website URL</label>
+        <input type="text" class="form-control" data-field="domain" placeholder="e.g. greenrivercamp.in" value="<%= formData.domain || '' %>">
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Full Address</label>
+        <input type="text" class="form-control" data-field="address" placeholder="Street, City, State, PIN" value="<%= formData.address || '' %>">
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Google Maps Link</label>
+        <input type="url" class="form-control" data-field="maps_link" placeholder="https://maps.google.com/..." value="<%= formData.maps_link || '' %>">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Business Hours</label>
+        <input type="text" class="form-control" data-field="business_hours" placeholder="e.g. Mon–Sat: 9AM–7PM" value="<%= formData.business_hours || '' %>">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Primary CTA Button</label>
+        <select class="form-control" data-field="primary_cta">
+          <% ['Book Now','WhatsApp Us','Call Now','Get a Quote','Enquire Now','Contact Us','Shop Now'].forEach(cta => { %>
+          <option value="<%= cta %>" <%= formData.primary_cta === cta ? 'selected' : '' %>><%= cta %></option>
+          <% }); %>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STEP 6: SEO ===== -->
+  <div class="step-panel" id="step_5">
+    <div class="step-header"><h2>SEO & Analytics</h2><p>Optimize the website for search engines.</p></div>
+    <div class="form-grid">
+      <div class="form-group col-span-2">
+        <label class="form-label">SEO Title Tag</label>
+        <input type="text" class="form-control" data-field="seo_title" placeholder="e.g. Green River Camp | Luxury Glamping in Rishikesh" value="<%= formData.seo_title || '' %>">
+        <div class="form-hint">Recommended: 50–60 characters</div>
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Meta Description</label>
+        <textarea class="form-control" data-field="seo_description" placeholder="A compelling 150–160 character description for search results..."><%= formData.seo_description || '' %></textarea>
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Target Keywords</label>
+        <div class="tag-input-wrap" id="keywords_wrap">
+          <input class="tag-real-input" placeholder="Type keyword and press Enter...">
+        </div>
+        <input type="hidden" id="keywords_hidden" data-field="seo_keywords" data-tags="true" value="<%= JSON.stringify(formData.seo_keywords || []) %>">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Language</label>
+        <select class="form-control" data-field="language">
+          <option value="en" <%= formData.language === 'en' ? 'selected' : '' %>>English</option>
+          <option value="hi" <%= formData.language === 'hi' ? 'selected' : '' %>>Hindi</option>
+          <option value="en-IN" <%= formData.language === 'en-IN' ? 'selected' : '' %>>English (India)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Google Analytics ID</label>
+        <input type="text" class="form-control" data-field="ga_id" placeholder="G-XXXXXXXXXX" value="<%= formData.ga_id || '' %>">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Schema / Business Type</label>
+        <select class="form-control" data-field="schema_type">
+          <% ['LocalBusiness','Hotel','Restaurant','Organization','Person','Product','MedicalBusiness','EducationalOrganization'].forEach(s => { %>
+          <option value="<%= s %>" <%= formData.schema_type === s ? 'selected' : '' %>><%= s %></option>
+          <% }); %>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STEP 7: SOCIAL ===== -->
+  <div class="step-panel" id="step_6">
+    <div class="step-header"><h2>Social Media & Content</h2><p>Social profiles, testimonials, and FAQ.</p></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Instagram</label>
+        <input type="url" class="form-control" data-field="instagram" placeholder="https://instagram.com/..." value="<%= formData.instagram || '' %>">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Facebook</label>
+        <input type="url" class="form-control" data-field="facebook" placeholder="https://facebook.com/..." value="<%= formData.facebook || '' %>">
+      </div>
+      <div class="form-group">
+        <label class="form-label">YouTube</label>
+        <input type="url" class="form-control" data-field="youtube" placeholder="https://youtube.com/..." value="<%= formData.youtube || '' %>">
+      </div>
+      <div class="form-group">
+        <label class="form-label">LinkedIn</label>
+        <input type="url" class="form-control" data-field="linkedin" placeholder="https://linkedin.com/..." value="<%= formData.linkedin || '' %>">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Twitter / X</label>
+        <input type="url" class="form-control" data-field="twitter" placeholder="https://twitter.com/..." value="<%= formData.twitter || '' %>">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pinterest</label>
+        <input type="url" class="form-control" data-field="pinterest" placeholder="https://pinterest.com/..." value="<%= formData.pinterest || '' %>">
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Testimonials</label>
+        <textarea class="form-control" data-field="testimonials" style="min-height:100px" placeholder="Paste client reviews here. One per paragraph."><%= formData.testimonials || '' %></textarea>
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">FAQ</label>
+        <textarea class="form-control" data-field="faq" style="min-height:100px" placeholder="Q: What is your check-in time?&#10;A: 2 PM onwards"><%= formData.faq || '' %></textarea>
+      </div>
+      <div class="form-group col-span-2">
+        <label class="form-label">Additional Notes for AI</label>
+        <textarea class="form-control" data-field="ai_notes" placeholder="Any special instructions, references, or things to avoid..."><%= formData.ai_notes || '' %></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STEP 8: REVIEW ===== -->
+  <div class="step-panel" id="step_7">
+    <div class="step-header"><h2>Review & Generate</h2><p>Confirm all information before generating the website.</p></div>
+
+    <div class="review-section">
+      <div class="review-section-header"><div class="review-section-title">Business Info</div></div>
+      <div class="review-section-body" id="review_business"></div>
+    </div>
+    <div class="review-section">
+      <div class="review-section-header"><div class="review-section-title">Services & Sections</div></div>
+      <div class="review-section-body" id="review_services"></div>
+    </div>
+    <div class="review-section">
+      <div class="review-section-header"><div class="review-section-title">Brand & Style</div></div>
+      <div class="review-section-body" id="review_brand"></div>
+    </div>
+    <div class="review-section">
+      <div class="review-section-header"><div class="review-section-title">Contact & SEO</div></div>
+      <div class="review-section-body" id="review_contact"></div>
+    </div>
+
+    <div class="alert alert-info" style="margin-top:16px">
+      ✦ Generating will use <strong>1 site credit</strong>. Make sure all info above is correct.
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="step-nav">
+    <button class="btn btn-outline" id="btnBack" onclick="prevStep()" style="visibility:hidden">← Back</button>
+    <span class="step-counter" id="stepCounter">Step 1 of 8</span>
+    <button class="btn btn-gold" id="btnNext" onclick="nextStep()">Continue →</button>
+  </div>
+</div>
+
+<!-- Generation Loading Overlay -->
+<div class="generation-overlay" id="generationOverlay">
+  <div class="spinner"></div>
+  <div class="generation-text">Claude is building your website...</div>
+  <div class="generation-sub">This usually takes 30–60 seconds. Please don't close this tab.</div>
+</div>
+
+<script src="/js/main.js"></script>
+<script>
+const pid = <%= project.id %>;
+initWizard(pid);
+initTagInput('usp_wrap', 'usps_hidden');
+initTagInput('services_wrap', 'services_hidden');
+initTagInput('keywords_wrap', 'keywords_hidden');
+initAssetUpload('logoInput', 'logoPreview', pid, 'logo');
+initAssetUpload('assetsInput', 'assetsPreview', pid, 'assets');
+syncColorPicker('cp_color_primary', 'hex_color_primary');
+syncColorPicker('cp_color_accent', 'hex_color_accent');
+syncColorPicker('cp_color_bg', 'hex_color_bg');
+syncColorPicker('cp_color_text', 'hex_color_text');
+
+// Auto-save on input
+document.querySelectorAll('.form-control, .tag-real-input').forEach(el => {
+  el.addEventListener('input', scheduleAutoSave);
+  el.addEventListener('change', scheduleAutoSave);
+});
+
+// Populate review on step 8
+document.getElementById('btnNext').addEventListener('click', () => {
+  if (currentStep === 6) populateReview();
+});
+
+function populateReview() {
+  const fd = collectFormData();
+  const rk = (k, v) => `<div class="review-row"><div class="review-key">${k}</div><div class="review-val">${v || '<span style="color:var(--text-muted)">Not provided</span>'}</div></div>`;
+  const tags = (arr) => {
+    if (!arr || !arr.length) return '<span style="color:var(--text-muted)">None</span>';
+    return '<div class="review-tags">' + arr.map(t => `<span class="review-tag">${t}</span>`).join('') + '</div>';
+  };
+  document.getElementById('review_business').innerHTML = rk('Business', fd.client_name) + rk('Industry', fd.industry) + rk('Tagline', fd.tagline) + rk('Location', fd.location) + rk('Founded', fd.year_established) + `<div class="review-row"><div class="review-key">USPs</div><div class="review-val">${tags(JSON.parse(fd.usps||'[]'))}</div></div>`;
+  document.getElementById('review_services').innerHTML = `<div class="review-row"><div class="review-key">Services</div><div class="review-val">${tags(JSON.parse(fd.services||'[]'))}</div></div><div class="review-row"><div class="review-key">Sections</div><div class="review-val">${tags(JSON.parse(fd.sections||'[]'))}</div></div>` + rk('Price Range', fd.price_range);
+  document.getElementById('review_brand').innerHTML = rk('Tone', fd.tone) + rk('Font', fd.font_preference) + rk('Style', fd.design_style) + `<div class="review-row"><div class="review-key">Colors</div><div class="review-val" style="display:flex;gap:6px;flex-wrap:wrap">${[['Primary',fd.color_primary],['Accent',fd.color_accent],['BG',fd.color_bg],['Text',fd.color_text]].map(([l,c])=>`<span style="font-size:10px">${l}: <span style="display:inline-block;width:12px;height:12px;background:${c||'#000'};border-radius:2px;vertical-align:middle;border:1px solid rgba(255,255,255,0.1)"></span> ${c||'—'}</span>`).join('')}</div></div>`;
+  document.getElementById('review_contact').innerHTML = rk('Email', fd.email) + rk('Phone', fd.phone) + rk('WhatsApp', fd.whatsapp) + rk('CTA', fd.primary_cta) + rk('SEO Title', fd.seo_title) + rk('GA ID', fd.ga_id);
+}
+</script>
+</body>
+</html>
