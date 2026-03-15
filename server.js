@@ -3,144 +3,136 @@ const express = require('express');
 const session = require('express-session');
 const path = require('path');
 const cron = require('node-cron');
-const fs = require('fs');
-const { initDb, getDb } = require('./db/database');
+const { supabaseAdmin } = require('./lib/supabase');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const baseUrl = (process.env.BASE_URL || process.env.APP_URL || 'https://vibenote.studio').replace(/\/$/, '');
 
-// ==========================================
-// VIEW ENGINE
-// ==========================================
+app.set('trust proxy', 1);
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-
-// ==========================================
-// MIDDLEWARE
-// ==========================================
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Raw body for Razorpay webhook
-app.use('/plans/webhook', express.raw({ type: 'application/json' }));
-
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Sessions — using in-memory store (works on all hosts, no native deps)
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'vibenote-dev-secret-change-in-production',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    secure: false
+    sameSite: 'lax'
   }
 }));
 
-// ==========================================
-// ROUTES
-// ==========================================
-const authRoutes = require('./routes/auth');
-const dashboardRoutes = require('./routes/dashboard');
-const projectRoutes = require('./routes/projects');
-const generateRoutes = require('./routes/generate');
-const deployRoutes = require('./routes/deploy');
-const paymentRoutes = require('./routes/payments');
-const adminRoutes = require('./routes/admin');
+const authRouter = require('./routes/auth');
+const dashRouter = require('./routes/dashboard');
+const projectsRouter = require('./routes/projects');
+const generateRouter = require('./routes/generate');
+const briefsRouter = require('./routes/briefs');
+const deployRouter = require('./routes/deploy');
+const paymentsRouter = require('./routes/payments');
+const adminRouter = require('./routes/admin');
+const agencyRouter = require('./routes/agency');
+const publicBriefRouter = require('./routes/public-brief');
+const pagesRouter = require('./routes/pages');
 
-app.use('/', authRoutes);
-app.use('/dashboard', dashboardRoutes);
-app.use('/projects', projectRoutes);
-app.use('/generate', generateRoutes);
-app.use('/deploy', deployRoutes);
-app.use('/plans', paymentRoutes);
-app.use('/admin', adminRoutes);
-
-// Root redirect
 app.get('/', (req, res) => {
-  if (req.session.agencyId) return res.redirect('/dashboard');
-  res.redirect('/login');
+  if (req.session.userId) return res.redirect('/dashboard');
+  res.render('landing', {
+    baseUrl,
+    seo: {
+      title: 'VibeNote � AI Website Generator for Agencies',
+      description: 'VibeNote helps agencies generate, edit and deploy client websites instantly using AI.',
+      ogDescription: 'Generate and deploy client websites instantly.',
+      path: '/',
+      canonical: baseUrl,
+      ogUrl: baseUrl,
+      schema: {
+        '@context': 'https://schema.org',
+        '@type': 'Organization',
+        name: 'VibeNote',
+        url: baseUrl,
+        logo: `${baseUrl}/logo.png`
+      }
+    }
+  });
 });
 
-// Join with referral shortlink
-app.get('/join', (req, res) => {
-  const ref = req.query.ref || '';
-  res.redirect(`/signup?ref=${ref}`);
+app.use('/', pagesRouter);
+app.use('/', authRouter);
+app.use('/brief', publicBriefRouter);
+app.use('/dashboard', dashRouter);
+app.use('/agency', agencyRouter);
+app.use('/projects', projectsRouter);
+app.use('/generate', generateRouter);
+app.use('/briefs', briefsRouter);
+app.use('/deploy', deployRouter);
+app.use('/plans', paymentsRouter);
+app.use('/admin', adminRouter);
+
+app.get('/settings', (req, res) => {
+  if (!req.session.userId) return res.redirect('/login?next=' + encodeURIComponent('/settings'));
+  res.redirect('/dashboard#settings');
 });
 
-// ==========================================
-// ERROR HANDLER
-// ==========================================
+app.get('/preview/:id', async (req, res) => {
+  try {
+    const { data: project } = await supabaseAdmin
+      .from('projects')
+      .select('generated_html')
+      .eq('id', req.params.id)
+      .single();
+
+    if (!project?.generated_html) return res.status(404).send('Not found');
+    res.setHeader('Content-Type', 'text/html');
+    res.send(project.generated_html);
+  } catch (error) {
+    console.error('Preview error:', error);
+    res.status(500).send('Error');
+  }
+});
+
+app.post('/settings', async (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ error: 'Not authenticated' });
+
+  const { data: agency } = await supabaseAdmin
+    .from('agencies')
+    .select('id')
+    .eq('auth_user_id', req.session.userId)
+    .maybeSingle();
+
+  if (!agency) {
+    return res.status(404).json({ error: 'Agency not found.' });
+  }
+
+  const { sftp_host, sftp_user, sftp_pass, sftp_base_path, country, currency } = req.body;
+  await supabaseAdmin.from('agencies').update({
+    sftp_host,
+    sftp_user,
+    sftp_pass,
+    sftp_base_path,
+    country,
+    currency
+  }).eq('id', agency.id);
+
+  res.json({ success: true });
+});
+
+cron.schedule('0 0 1 * *', async () => {
+  console.log('[cron] Resetting monthly credits...');
+  const planCredits = { free: 1, starter: 1, growth: 10, agency: 50 };
+  for (const [plan, credits] of Object.entries(planCredits)) {
+    await supabaseAdmin.from('agencies').update({ site_credits: credits }).eq('plan', plan).eq('status', 'active');
+  }
+  console.log('[cron] Credits reset done.');
+});
+
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
-  if (req.xhr || req.path.startsWith('/generate') || req.path.startsWith('/deploy')) {
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-  res.status(500).render('error', { message: err.message || 'An unexpected error occurred.' });
+  res.status(500).render('error', { message: err.message || 'Something went wrong.' });
 });
 
-app.use((req, res) => {
-  res.status(404).render('error', { message: 'Page not found.' });
-});
-
-// ==========================================
-// BOOTSTRAP
-// ==========================================
-async function bootstrap() {
-  const db = getDb();
-  try {
-    const count = db.prepare('SELECT COUNT(*) as c FROM agencies').get();
-    if (count && count.c === 0) {
-      const bcrypt = require('bcrypt');
-      const seedCode = 'VIBENOTE2024';
-      const seedHash = bcrypt.hashSync('seedpassword', 10);
-      db.prepare(`
-        INSERT OR IGNORE INTO agencies (name, email, password_hash, referral_code, plan, site_credits, status)
-        VALUES (?, ?, ?, ?, 'agency', 999, 'active')
-      `).run('Vibenote Seed', 'seed@vibenote.studio', seedHash, seedCode);
-      console.log('[BOOTSTRAP] Seed created. Referral code: VIBENOTE2024');
-    }
-  } catch (e) {
-    console.error('[BOOTSTRAP] Failed:', e.message);
-  }
-}
-
-// ==========================================
-// CRON — Monthly credit reset
-// ==========================================
-function setupCron() {
-  cron.schedule('0 0 1 * *', () => {
-    console.log('[CRON] Resetting monthly site credits...');
-    const db = getDb();
-    const planCredits = { free: 1, starter: 1, growth: 10, agency: 50 };
-    try {
-      const agencies = db.prepare("SELECT id, plan FROM agencies WHERE status = 'active'").all();
-      for (const a of agencies) {
-        const credits = planCredits[a.plan] || 1;
-        db.prepare('UPDATE agencies SET site_credits = ? WHERE id = ?').run(credits, a.id);
-      }
-      console.log(`[CRON] Reset credits for ${agencies.length} agencies.`);
-    } catch (err) {
-      console.error('[CRON] Credit reset failed:', err);
-    }
-  });
-}
-
-// ==========================================
-// START
-// ==========================================
-initDb().then(async () => {
-  await bootstrap();
-  setupCron();
-  app.listen(PORT, () => {
-    console.log(`\n✦ Vibenote.studio running on http://localhost:${PORT}`);
-    console.log(`  Admin: http://localhost:${PORT}/admin`);
-    console.log(`  First signup referral code: VIBENOTE2024\n`);
-  });
-}).catch(err => {
-  console.error('Failed to initialize database:', err);
-  process.exit(1);
-});
-
-module.exports = app;
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Vibenote running on port ${PORT}`));

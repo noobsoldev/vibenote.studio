@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Signing in — Vibenote.studio</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#080808;color:#f0ebe0;font-family:'Poppins',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px}
+.logo{font-size:16px;font-weight:700;position:absolute;top:28px}.logo span{color:#c9a84c}
+.spinner{width:40px;height:40px;border:3px solid rgba(201,168,76,0.15);border-top-color:#c9a84c;border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.msg{color:rgba(240,235,224,0.5);font-size:14px}
+.err{display:none;background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.25);border-radius:10px;padding:16px 20px;max-width:340px;color:#ff8080;font-size:13px;line-height:1.6;text-align:center}
+.err a{color:#c9a84c;text-decoration:none}
+</style>
+</head>
+<body>
+<div class="logo">Vibenote<span>.studio</span></div>
+<div class="spinner" id="spin"></div>
+<p class="msg" id="msg">Completing sign in...</p>
+<div class="err" id="err"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const _sb = window.supabase.createClient('<%- supabaseUrl %>', '<%- supabaseAnonKey %>', {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+});
+
+let done = false;
+
+function showErr(msg) {
+  document.getElementById('spin').style.display = 'none';
+  document.getElementById('msg').style.display = 'none';
+  const el = document.getElementById('err');
+  el.innerHTML = msg + '<br><br><a href="/login">Back to login</a>';
+  el.style.display = 'block';
+}
+
+async function finishAuth(session) {
+  if (done) return;
+  done = true;
+  document.getElementById('msg').textContent = 'Setting up your account...';
+  try {
+    const r = await fetch('/auth/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token
+      })
+    });
+    const d = await r.json();
+    if (d.redirect) {
+      window.location.href = d.redirect;
+    } else {
+      showErr(d.error || 'Sign in failed. Please try again.');
+    }
+  } catch (e) {
+    showErr('Network error. Please try again.');
+  }
+}
+
+// Primary: exchange the ?code= from the URL — detectSessionInUrl:true does this automatically
+_sb.auth.onAuthStateChange(async (event, session) => {
+  console.log('Auth event:', event, !!session);
+  if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+    await finishAuth(session);
+  }
+});
+
+// Fallback: manually exchange code if onAuthStateChange doesn't fire
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+
+  if (code) {
+    // Give onAuthStateChange time to fire first
+    await new Promise(r => setTimeout(r, 1000));
+    if (done) return;
+
+    // Manually exchange
+    try {
+      const { data, error } = await _sb.auth.exchangeCodeForSession(code);
+      if (error) {
+        console.error('Manual exchange failed:', error.message);
+        showErr('Sign in failed: ' + error.message);
+        return;
+      }
+      if (data?.session) {
+        await finishAuth(data.session);
+        return;
+      }
+    } catch(e) {
+      console.error('Exchange exception:', e);
+    }
+  }
+
+  // No code — try getSession (hash flow fallback)
+  await new Promise(r => setTimeout(r, 500));
+  if (done) return;
+  const { data } = await _sb.auth.getSession();
+  if (data?.session) {
+    await finishAuth(data.session);
+    return;
+  }
+
+  await new Promise(r => setTimeout(r, 1500));
+  if (done) return;
+  showErr('Sign in timed out. Please try again.');
+})();
+</script>
+</body>
+</html>

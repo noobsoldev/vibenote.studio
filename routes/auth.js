@@ -1,90 +1,212 @@
 const express = require('express');
-const router = express.Router();
-const bcrypt = require('bcrypt');
-const { v4: uuidv4 } = require('uuid');
-const { getDb } = require('../db/database');
-const db = { prepare: (...a) => getDb().prepare(...a), exec: (...a) => getDb().exec(...a), transaction: (...a) => getDb().transaction(...a) };
+const { supabase, supabaseAdmin, supabaseUrl, supabaseAnonKey, getUserFromToken } = require('../lib/supabase');
 const { requireGuest } = require('../middleware/auth');
 
-// GET /login
+const router = express.Router();
+const baseUrl = (process.env.BASE_URL || process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+
+function buildSlugPrefix(email = '') {
+  return String(email)
+    .split('@')[0]
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'agency';
+}
+
+async function generateAgencySlug(user) {
+  const baseSlug = `${buildSlugPrefix(user.email)}-${String(user.id).slice(0, 6)}`;
+  const { data: existing, error } = await supabaseAdmin
+    .from('agencies')
+    .select('id, slug, auth_user_id')
+    .eq('slug', baseSlug)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Slug lookup failed:', error);
+  }
+
+  if (!existing || existing.auth_user_id === user.id) {
+    return baseSlug;
+  }
+
+  return `${baseSlug}-${String(user.id).slice(0, 4)}`;
+}
+
+async function ensureAgencyForUser(user) {
+  const { data: existing, error: existingError } = await supabaseAdmin
+    .from('agencies')
+    .select('*')
+    .eq('auth_user_id', user.id)
+    .maybeSingle();
+
+  if (existingError) {
+    console.error('Agency lookup failed:', existingError);
+    throw existingError;
+  }
+
+  if (existing) {
+    return existing;
+  }
+
+  const slug = await generateAgencySlug(user);
+  const displayName = user.user_metadata?.full_name || user.email || 'New Agency';
+  const payload = {
+    auth_user_id: user.id,
+    agency_name: user.user_metadata?.full_name || null,
+    name: displayName,
+    email: user.email || null,
+    slug,
+    created_at: new Date().toISOString()
+  };
+
+  const { data: created, error: createError } = await supabaseAdmin
+    .from('agencies')
+    .insert(payload)
+    .select('*')
+    .single();
+
+  if (createError) {
+    console.error('Agency creation failed:', createError);
+    throw createError;
+  }
+
+  return created;
+}
+
+function loginErrorMessage(code) {
+  if (code === 'auth_failed') return 'Authentication failed. Please try again.';
+  if (code === 'session_failed') return 'Session could not be stored. Please try again.';
+  if (code === 'invalid_credentials') return 'Invalid email or password.';
+  return null;
+}
+
 router.get('/login', requireGuest, (req, res) => {
-  res.render('login', { error: null, next: req.query.next || '/dashboard' });
-});
-
-// POST /login
-router.post('/login', requireGuest, async (req, res) => {
-  const { email, password, next } = req.body;
-  try {
-    const agency = db.prepare('SELECT * FROM agencies WHERE email = ?').get(email);
-    if (!agency) {
-      return res.render('login', { error: 'Invalid email or password.', next: next || '/dashboard' });
-    }
-    if (agency.status === 'suspended') {
-      return res.render('login', { error: 'Your account has been suspended. Contact support.', next: next || '/dashboard' });
-    }
-    const valid = await bcrypt.compare(password, agency.password_hash);
-    if (!valid) {
-      return res.render('login', { error: 'Invalid email or password.', next: next || '/dashboard' });
-    }
-    req.session.agencyId = agency.id;
-    req.session.agencyName = agency.name;
-    req.session.save(() => res.redirect(next || '/dashboard'));
-  } catch (err) {
-    console.error('Login error:', err);
-    res.render('login', { error: 'Something went wrong. Please try again.', next: next || '/dashboard' });
+  if (req.session.userId) {
+    return res.redirect('/dashboard');
   }
+
+  return res.render('login', {
+    errorMessage: loginErrorMessage(req.query.error),
+    supabaseUrl,
+    supabaseAnonKey,
+    baseUrl
+  });
 });
 
-// GET /signup
 router.get('/signup', requireGuest, (req, res) => {
-  res.render('signup', { error: null, ref: req.query.ref || '' });
+  return res.render('signup', {
+    error: null,
+    ref: req.query.ref || '',
+    supabaseUrl,
+    supabaseAnonKey,
+    appUrl: baseUrl
+  });
 });
 
-// POST /signup
-router.post('/signup', requireGuest, async (req, res) => {
-  const { name, email, password, referral_code } = req.body;
+router.post('/login', async (req, res) => {
+  const email = String(req.body.email || '').trim();
+  const password = String(req.body.password || '');
+
+  if (!email || !password) {
+    return res.status(400).render('login', {
+      errorMessage: 'Email and password are required.',
+      supabaseUrl,
+      supabaseAnonKey,
+      baseUrl
+    });
+  }
+
   try {
-    // Validate referral code
-    if (!referral_code || !referral_code.trim()) {
-      return res.render('signup', { error: 'A referral code is required to sign up.', ref: '' });
-    }
-    const referrer = db.prepare('SELECT * FROM agencies WHERE referral_code = ?').get(referral_code.trim());
-    if (!referrer) {
-      return res.render('signup', { error: 'Invalid referral code. Please get a valid invite link.', ref: referral_code });
-    }
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
-    // Check email uniqueness
-    const existing = db.prepare('SELECT id FROM agencies WHERE email = ?').get(email);
-    if (existing) {
-      return res.render('signup', { error: 'An account with this email already exists.', ref: referral_code });
+    if (signInError || !signInData?.session?.access_token) {
+      console.error('Email login failed:', signInError);
+      return res.status(401).render('login', {
+        errorMessage: 'Invalid email or password.',
+        supabaseUrl,
+        supabaseAnonKey,
+        baseUrl
+      });
     }
 
-    const hash = await bcrypt.hash(password, 12);
-    const myReferralCode = uuidv4().replace(/-/g, '').substring(0, 12).toUpperCase();
+    const { data, error } = await supabaseAdmin.auth.getUser(signInData.session.access_token);
+    if (error || !data?.user) {
+      console.error('Email login user fetch failed:', error);
+      return res.redirect('/login?error=auth_failed');
+    }
 
-    const result = db.prepare(`
-      INSERT INTO agencies (name, email, password_hash, referral_code, referred_by, site_credits, plan, status)
-      VALUES (?, ?, ?, ?, ?, 1, 'free', 'active')
-    `).run(name, email, hash, myReferralCode, referral_code.trim());
+    const agency = await ensureAgencyForUser(data.user);
+    req.session.userId = data.user.id;
+    req.session.email = data.user.email || null;
+    req.session.agencyId = agency.id;
+    req.session.agencyName = agency.agency_name || agency.name || null;
 
-    // Record referral
-    db.prepare(`
-      INSERT INTO referrals (referrer_id, referred_id, converted, credit_awarded)
-      VALUES (?, ?, 0, 0)
-    `).run(referrer.id, result.lastInsertRowid);
-
-    req.session.agencyId = result.lastInsertRowid;
-    req.session.agencyName = name;
-    req.session.save(() => res.redirect('/dashboard'));
-  } catch (err) {
-    console.error('Signup error:', err);
-    res.render('signup', { error: 'Something went wrong. Please try again.', ref: referral_code || '' });
+    return req.session.save((sessionError) => {
+      if (sessionError) {
+        console.error('Session save failed:', sessionError);
+        return res.redirect('/login?error=session_failed');
+      }
+      return res.redirect('/dashboard');
+    });
+  } catch (error) {
+    console.error('Email login exception:', error);
+    return res.redirect('/login?error=auth_failed');
   }
 });
 
-// GET /logout
+// OAuth callback — serve EJS page, frontend handles token exchange
+router.get('/auth/callback', (req, res) => {
+  res.render('auth-callback', { supabaseUrl, supabaseAnonKey });
+});
+
+// POST /auth/session — called by frontend after Supabase login
+router.post('/auth/session', async (req, res) => {
+  try {
+    const accessToken = String(req.body.access_token || '');
+
+    if (!accessToken) {
+      return res.status(400).json({ error: 'Missing access token.' });
+    }
+
+    const user = await getUserFromToken(accessToken);
+    if (!user) {
+      console.error('Auth session failed: could not resolve user from token');
+      return res.status(401).json({ error: 'Authentication failed.' });
+    }
+
+    const agency = await ensureAgencyForUser(user);
+    req.session.userId = user.id;
+    req.session.email = user.email || null;
+    req.session.agencyId = agency.id;
+    req.session.agencyName = agency.agency_name || agency.name || null;
+
+    return req.session.save((sessionError) => {
+      if (sessionError) {
+        console.error('Session save failed:', sessionError);
+        return res.status(500).json({ error: 'Session error.' });
+      }
+
+      return res.json({ success: true, redirect: '/dashboard' });
+    });
+  } catch (error) {
+    console.error('Auth session exception:', error);
+    return res.status(500).json({ error: 'Authentication failed.' });
+  }
+});
+
+router.get('/auth/debug', (req, res) => {
+  res.json({
+    sessionExists: !!req.session,
+    userId: req.session.userId || null,
+    email: req.session.email || null
+  });
+});
+
 router.get('/logout', (req, res) => {
-  req.session.destroy(() => res.redirect('/login'));
+  req.session.destroy(() => {
+    res.clearCookie('connect.sid');
+    res.redirect('/login');
+  });
 });
 
 module.exports = router;

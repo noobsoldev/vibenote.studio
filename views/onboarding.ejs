@@ -349,7 +349,10 @@
 
   <!-- ===== STEP 8: REVIEW ===== -->
   <div class="step-panel" id="step_7">
-    <div class="step-header"><h2>Review & Generate</h2><p>Confirm all information before generating the website.</p></div>
+    <div class="step-header">
+      <h2>Review & Save Brief</h2>
+      <p>Confirm all information before saving. You can generate the website anytime from your Web Briefs.</p>
+    </div>
 
     <div class="review-section">
       <div class="review-section-header"><div class="review-section-title">Business Info</div></div>
@@ -369,28 +372,38 @@
     </div>
 
     <div class="alert alert-info" style="margin-top:16px">
-      ✦ Generating will use <strong>1 site credit</strong>. Make sure all info above is correct.
+      📁 Saving the brief is <strong>free</strong>. Generating the website costs <strong>1 site credit</strong> — you can do that anytime from your Web Briefs folder.
     </div>
   </div>
 
-  <!-- Navigation -->
-  <div class="step-nav">
+  <!-- Navigation — normal steps -->
+  <div class="step-nav" id="stepNavNormal">
     <button class="btn btn-outline" id="btnBack" onclick="prevStep()" style="visibility:hidden">← Back</button>
     <span class="step-counter" id="stepCounter">Step 1 of 8</span>
     <button class="btn btn-gold" id="btnNext" onclick="nextStep()">Continue →</button>
   </div>
+
+  <!-- Navigation — step 8 only: two action buttons -->
+  <div class="step-nav" id="stepNavFinal" style="display:none">
+    <button class="btn btn-outline" onclick="prevStep()">← Back</button>
+    <span class="step-counter">Step 8 of 8</span>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline btn-lg" id="btnSaveBrief" onclick="saveBriefOnly()">📁 Save Brief</button>
+      <button class="btn btn-gold btn-lg" id="btnGenerateNow" onclick="generateNow()">✦ Generate Website</button>
+    </div>
+  </div>
 </div>
 
-<!-- Generation Loading Overlay -->
+<!-- Saving overlay -->
 <div class="generation-overlay" id="generationOverlay">
   <div class="spinner"></div>
-  <div class="generation-text">Claude is building your website...</div>
-  <div class="generation-sub">This usually takes 30–60 seconds. Please don't close this tab.</div>
+  <div class="generation-text" id="overlayText">Saving client brief...</div>
+  <div class="generation-sub" id="overlaySub">This only takes a second.</div>
 </div>
 
-<script src="/js/main.js"></script>
+<script src="/js/main.js?v=2"></script>
 <script>
-const pid = <%= project.id %>;
+const pid = '<%= project.id %>';
 initWizard(pid);
 initTagInput('usp_wrap', 'usps_hidden');
 initTagInput('services_wrap', 'services_hidden');
@@ -402,16 +415,20 @@ syncColorPicker('cp_color_accent', 'hex_color_accent');
 syncColorPicker('cp_color_bg', 'hex_color_bg');
 syncColorPicker('cp_color_text', 'hex_color_text');
 
-// Auto-save on input
 document.querySelectorAll('.form-control, .tag-real-input').forEach(el => {
   el.addEventListener('input', scheduleAutoSave);
   el.addEventListener('change', scheduleAutoSave);
 });
 
-// Populate review on step 8
-document.getElementById('btnNext').addEventListener('click', () => {
-  if (currentStep === 6) populateReview();
-});
+// Override showStep to swap nav bars on step 8
+const _origShowStep = showStep;
+showStep = function(n) {
+  _origShowStep(n);
+  const isLast = n === totalSteps - 1;
+  document.getElementById('stepNavNormal').style.display = isLast ? 'none' : '';
+  document.getElementById('stepNavFinal').style.display = isLast ? 'flex' : 'none';
+  if (isLast) populateReview();
+};
 
 function populateReview() {
   const fd = collectFormData();
@@ -424,6 +441,61 @@ function populateReview() {
   document.getElementById('review_services').innerHTML = `<div class="review-row"><div class="review-key">Services</div><div class="review-val">${tags(JSON.parse(fd.services||'[]'))}</div></div><div class="review-row"><div class="review-key">Sections</div><div class="review-val">${tags(JSON.parse(fd.sections||'[]'))}</div></div>` + rk('Price Range', fd.price_range);
   document.getElementById('review_brand').innerHTML = rk('Tone', fd.tone) + rk('Font', fd.font_preference) + rk('Style', fd.design_style) + `<div class="review-row"><div class="review-key">Colors</div><div class="review-val" style="display:flex;gap:6px;flex-wrap:wrap">${[['Primary',fd.color_primary],['Accent',fd.color_accent],['BG',fd.color_bg],['Text',fd.color_text]].map(([l,c])=>`<span style="font-size:10px">${l}: <span style="display:inline-block;width:12px;height:12px;background:${c||'#000'};border-radius:2px;vertical-align:middle;border:1px solid rgba(255,255,255,0.1)"></span> ${c||'—'}</span>`).join('')}</div></div>`;
   document.getElementById('review_contact').innerHTML = rk('Email', fd.email) + rk('Phone', fd.phone) + rk('WhatsApp', fd.whatsapp) + rk('CTA', fd.primary_cta) + rk('SEO Title', fd.seo_title) + rk('GA ID', fd.ga_id);
+}
+
+// Save brief only → redirect to /briefs
+async function saveBriefOnly() {
+  await saveProgress();
+  const overlay = document.getElementById('generationOverlay');
+  const overlayText = document.getElementById('overlayText');
+  const overlaySub = document.getElementById('overlaySub');
+  overlay.classList.add('show');
+  overlayText.textContent = 'Saving client brief...';
+  overlaySub.textContent = 'This only takes a second.';
+  try {
+    const res = await fetch(`/projects/${pid}/save-brief`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      overlayText.textContent = 'Brief saved! ✓';
+      overlaySub.textContent = 'Redirecting to Web Briefs...';
+      setTimeout(() => { window.location.href = '/briefs'; }, 800);
+    } else {
+      overlay.classList.remove('show');
+      showToast(data.error || 'Failed to save brief.', 'error');
+    }
+  } catch (e) {
+    overlay.classList.remove('show');
+    showToast('Network error. Please try again.', 'error');
+  }
+}
+
+// Generate immediately (saves brief first, then generates)
+async function generateNow() {
+  await saveProgress();
+  const overlay = document.getElementById('generationOverlay');
+  const overlayText = document.getElementById('overlayText');
+  const overlaySub = document.getElementById('overlaySub');
+  overlay.classList.add('show');
+  overlayText.textContent = 'Building your website with AI...';
+  overlaySub.textContent = 'This takes about 30–60 seconds. Please wait.';
+  try {
+    // First save brief
+    await fetch(`/projects/${pid}/save-brief`, { method: 'POST' });
+    // Then generate
+    const res = await fetch(`/briefs/${pid}/generate`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      overlayText.textContent = 'Website generated! ✓';
+      overlaySub.textContent = 'Opening editor...';
+      setTimeout(() => { window.location.href = `/generate/${data.projectId}/editor`; }, 800);
+    } else {
+      overlay.classList.remove('show');
+      showToast(data.error || 'Generation failed. Please try again.', 'error');
+    }
+  } catch (e) {
+    overlay.classList.remove('show');
+    showToast('Network error. Please try again.', 'error');
+  }
 }
 </script>
 </body>

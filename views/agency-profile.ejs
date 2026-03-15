@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= setupMode ? 'Set Up Agency Profile' : 'Agency Profile' %> - VibeNote.studio</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.profile-page{max-width:760px;margin:0 auto;padding:40px 24px 80px}
+.profile-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px}
+.profile-preview{display:flex;align-items:center;gap:16px;padding:16px 18px;background:var(--bg3);border:1px solid var(--border);border-radius:14px;margin-bottom:24px}
+.logo-box{width:64px;height:64px;border-radius:14px;border:1px solid var(--border);background:#111;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.logo-box img{width:100%;height:100%;object-fit:cover}
+.profile-muted{font-size:12px;color:var(--text-dim)}
+.setup-banner{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.22);border-radius:14px;padding:14px 16px;margin-bottom:18px;color:var(--text)}
+</style>
+</head>
+<body>
+<nav class="topnav">
+  <a href="<%= setupMode ? '/login' : '/dashboard' %>" class="topnav-logo" style="text-decoration:none"><%= setupMode ? '&larr; Setup' : '&larr; VibeNote' %><span>.studio</span></a>
+  <% if (!setupMode) { %>
+  <div class="topnav-right">
+    <span class="badge badge-<%= agency.plan %>"><%= agency.plan %></span>
+  </div>
+  <% } %>
+</nav>
+
+<div class="profile-page">
+  <div style="margin-bottom:20px">
+    <h1 style="font-size:28px;margin-bottom:6px"><%= setupMode ? 'Set Up Your Agency Profile' : 'Agency Profile' %></h1>
+    <p style="font-size:13px;color:var(--text-dim)"><%= setupMode ? 'Complete your agency branding once so your dashboard and client brief link are ready to use.' : 'Customize the branding used on your reusable client brief form.' %></p>
+  </div>
+
+  <% if (setupMode) { %>
+  <div class="setup-banner">First login detected. Add your agency name, color, logo, and contact email before you continue to the dashboard.</div>
+  <% } %>
+
+  <% if (error) { %>
+  <div class="alert alert-error"><%= error %></div>
+  <% } %>
+  <% if (success) { %>
+  <div class="alert alert-success"><%= success %></div>
+  <% } %>
+
+  <div class="profile-card">
+    <div class="profile-preview">
+      <div class="logo-box" style="background:<%= agency.brand_color || '#111111' %>20">
+        <% if (agency.logo_url) { %>
+        <img src="<%= agency.logo_url %>" alt="Agency logo">
+        <% } else { %>
+        <span style="font-size:22px;font-weight:800;color:<%= agency.brand_color || '#c9a84c' %>"><%= (agency.agency_name || agency.name || 'A').charAt(0).toUpperCase() %></span>
+        <% } %>
+      </div>
+      <div>
+        <div style="font-size:18px;font-weight:700"><%= agency.agency_name || agency.name %></div>
+        <div class="profile-muted">Brief link slug: <strong style="color:var(--gold)"><%= agency.slug || 'agency' %></strong></div>
+        <div class="profile-muted">Client brief link: <strong style="color:var(--text)"><%= (process.env.APP_URL || process.env.BASE_URL || 'https://adswala.store').replace(/\/$/, '') %>/brief/<%= agency.slug || 'agency' %></strong></div>
+      </div>
+    </div>
+
+    <form method="POST" action="<%= setupMode ? '/agency/setup' : '/agency/profile' %>" enctype="multipart/form-data">
+      <div class="form-grid">
+        <div class="form-group col-span-2">
+          <label class="form-label">Agency Name</label>
+          <input class="form-control" type="text" name="agency_name" value="<%= agency.agency_name || agency.name || '' %>" required>
+        </div>
+        <div class="form-group col-span-2">
+          <label class="form-label">Logo Upload</label>
+          <input class="form-control" type="file" name="logo" accept="image/*">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Brand Color</label>
+          <input class="form-control" type="text" name="brand_color" value="<%= agency.brand_color || '#c9a84c' %>" placeholder="#c9a84c">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contact Email</label>
+          <input class="form-control" type="email" name="contact_email" value="<%= agency.contact_email || agency.email || '' %>">
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-top:8px">
+        <div class="profile-muted"><%= setupMode ? 'Your slug is created automatically and will power your public client brief link.' : 'Slug is generated automatically from the agency name and kept reusable for your public client brief link.' %></div>
+        <button class="btn btn-gold" type="submit"><%= setupMode ? 'Complete Setup' : 'Save Profile' %></button>
+      </div>
+    </form>
+  </div>
+</div>
+</body>
+</html>

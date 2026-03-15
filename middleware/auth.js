@@ -1,22 +1,41 @@
-function requireAuth(req, res, next) {
-  if (req.session && req.session.agencyId) {
-    return next();
-  }
-  return res.redirect('/login?next=' + encodeURIComponent(req.originalUrl));
-}
+const { supabaseAdmin } = require('../lib/supabase');
 
-function requireAdmin(req, res, next) {
-  if (req.session && req.session.isAdmin) {
-    return next();
+async function requireAuth(req, res, next) {
+  if (!req.session.userId) {
+    return res.redirect('/login');
   }
-  return res.redirect('/admin/login');
+
+  try {
+    const { data: agency, error } = await supabaseAdmin
+      .from('agencies')
+      .select('*')
+      .eq('auth_user_id', req.session.userId)
+      .maybeSingle();
+
+    if (error) {
+      return next(error);
+    }
+
+    if (agency) {
+      req.agency = agency;
+      req.session.agencyId = agency.id;
+      req.session.agencyName = agency.agency_name || agency.name || null;
+    }
+
+    return next();
+  } catch (error) {
+    return next(error);
+  }
 }
 
 function requireGuest(req, res, next) {
-  if (req.session && req.session.agencyId) {
+  if (req.session.userId) {
     return res.redirect('/dashboard');
   }
   return next();
 }
 
-module.exports = { requireAuth, requireAdmin, requireGuest };
+module.exports = {
+  requireAuth,
+  requireGuest
+};

@@ -2,36 +2,59 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard — Vibenote.studio</title>
+<title>Dashboard - VibeNote.studio</title>
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
 <nav class="topnav">
-  <span class="topnav-logo">Vibenote<span>.studio</span></span>
+  <span class="topnav-logo">VibeNote<span>.studio</span></span>
   <div class="topnav-right">
     <span class="credits-badge">
-      <%= agency.site_credits %> / <%= planLimit %> credits
+      <%= agency.site_credits %> / <%= planLimit %> site slots
     </span>
     <span class="badge badge-<%= agency.plan %>"><%= agency.plan %></span>
-    <div class="agency-avatar"><%= agency.name.charAt(0).toUpperCase() %></div>
+    <div class="agency-avatar"><%= (agency.agency_name || agency.name).charAt(0).toUpperCase() %></div>
     <a href="/logout" class="btn btn-ghost btn-sm">Sign Out</a>
   </div>
 </nav>
 
 <div class="dashboard-main">
   <div class="dashboard-header">
-    <h1>Welcome back, <%= agency.name %> 👋</h1>
-    <p>You have <strong style="color:var(--gold)"><%= agency.site_credits %></strong> site credit<%= agency.site_credits !== 1 ? 's' : '' %> remaining this month.</p>
+    <h1><%= agency.agency_name || agency.name %> delivery dashboard</h1>
+    <p>You have <strong style="color:var(--gold)"><%= agency.site_credits %></strong> client website slot<%= agency.site_credits !== 1 ? 's' : '' %> available on your current plan.</p>
   </div>
 
-  <!-- Projects -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-    <h2 style="font-size:15px;font-weight:700">Your Projects</h2>
+  <div style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap">
+    <a href="/briefs" class="btn btn-outline btn-sm" style="display:flex;align-items:center;gap:6px">Client Briefs</a>
+    <a href="/agency/profile" class="btn btn-outline btn-sm" style="display:flex;align-items:center;gap:6px">Agency Profile</a>
+    <a href="/plans" class="btn btn-outline btn-sm" style="display:flex;align-items:center;gap:6px">Pricing & Packs</a>
+  </div>
+
+  <div class="card" style="margin-bottom:24px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div>
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:4px">Client Brief Link</h3>
+        <p style="font-size:12px;color:var(--text-dim)">Share this branded form with clients to collect website details automatically.</p>
+      </div>
+      <a href="/agency/profile" class="btn btn-outline btn-sm">Manage Branding</a>
+    </div>
+    <div class="referral-link-row" style="margin-top:14px">
+      <input class="referral-link-input" value="<%= clientBriefLink %>" readonly id="clientBriefInput">
+      <button class="btn btn-gold btn-sm" onclick="copyReferralLink('<%= clientBriefLink %>')">Copy Link</button>
+      <a class="btn btn-outline btn-sm" href="<%= clientBriefLink %>" target="_blank">Open Form</a>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:16px;flex-wrap:wrap">
+    <div>
+      <h2 style="font-size:15px;font-weight:700">Projects</h2>
+      <p style="font-size:12px;color:var(--text-dim)">Track client websites across brief submitted, generated, editing, and live delivery stages.</p>
+    </div>
     <% if (agency.site_credits > 0) { %>
-    <a href="/projects/new" class="btn btn-gold btn-sm">+ New Project</a>
+    <a href="/projects/new" class="btn btn-gold btn-sm">+ New Client Website</a>
     <% } else { %>
-    <a href="/plans" class="btn btn-outline btn-sm">Upgrade for More Credits</a>
+    <a href="/plans" class="btn btn-outline btn-sm">Upgrade for More Capacity</a>
     <% } %>
   </div>
 
@@ -40,43 +63,51 @@
     <% if (agency.site_credits > 0) { %>
     <a href="/projects/new" class="new-project-card" style="text-decoration:none">
       <div class="new-project-icon">+</div>
-      <div class="new-project-label">Start Your First Project</div>
-      <div style="font-size:11px;color:var(--text-muted)">Fill the client brief and generate a website</div>
+      <div class="new-project-label">Start Your First Client Website</div>
+      <div style="font-size:11px;color:var(--text-muted)">Fill the structured brief and generate a static website</div>
     </a>
     <% } else { %>
     <div class="card" style="grid-column:1/-1;text-align:center;padding:48px">
-      <p style="font-size:14px;margin-bottom:16px">You've used all your site credits for this month.</p>
-      <a href="/plans" class="btn btn-gold">Upgrade Plan →</a>
+      <p style="font-size:14px;margin-bottom:16px">You've used all available site slots on this plan.</p>
+      <a href="/plans" class="btn btn-gold">View Pricing</a>
     </div>
     <% } %>
     <% } else { %>
-    <% projects.forEach(project => { %>
+    <% projects.forEach(project => {
+      const statusLabel = {
+        draft: 'Draft',
+        brief_saved: 'Brief Saved',
+        brief_submitted: 'Brief Submitted',
+        generated: 'Generated',
+        live: 'Live'
+      }[project.status] || project.status;
+    %>
     <div class="project-card">
       <div class="project-card-header">
         <div>
           <div class="project-name"><%= project.client_name %></div>
-          <div class="project-industry"><%= project.industry || 'No industry set' %></div>
+          <div class="project-industry"><%= project.industry || 'Client website' %></div>
         </div>
-        <span class="badge badge-<%= project.status %>"><%= project.status %></span>
+        <span class="badge badge-<%= project.status %>"><%= statusLabel %></span>
       </div>
       <div class="project-meta">
         <span class="project-date">Updated <%= new Date(project.updated_at).toLocaleDateString('en-IN') %></span>
         <% if (project.deployment_url) { %>
-        <a href="<%= project.deployment_url %>" target="_blank" style="font-size:11px;color:var(--green)">↗ Live</a>
+        <a href="<%= project.deployment_url %>" target="_blank" style="font-size:11px;color:var(--green)">Live</a>
         <% } %>
       </div>
       <div class="project-actions">
-        <% if (project.status === 'draft') { %>
-        <a href="/projects/<%= project.id %>/onboarding" class="btn btn-ghost btn-sm">Continue →</a>
+        <% if (project.status === 'draft' || project.status === 'brief_saved' || project.status === 'brief_submitted') { %>
+        <a href="/projects/<%= project.id %>/onboarding" class="btn btn-ghost btn-sm">Open Brief</a>
         <% } else { %>
-        <a href="/generate/<%= project.id %>/editor" class="btn btn-ghost btn-sm">Edit</a>
+        <a href="/generate/<%= project.id %>/editor" class="btn btn-ghost btn-sm">Editing</a>
         <% if (project.status !== 'live') { %>
-        <button class="btn btn-gold btn-sm" onclick="openDeployModal(<%= project.id %>)">Deploy</button>
+        <button class="btn btn-gold btn-sm" onclick="openDeployModal('<%= project.id %>')">Deploy</button>
         <% } else { %>
-        <button class="btn btn-outline btn-sm" onclick="openDeployModal(<%= project.id %>)">Redeploy</button>
+        <button class="btn btn-outline btn-sm" onclick="openDeployModal('<%= project.id %>')">Redeploy</button>
         <% } %>
         <% } %>
-        <button class="btn btn-danger btn-sm" onclick="deleteProject(<%= project.id %>)" title="Delete">✕</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteProject('<%= project.id %>')" title="Delete">&times;</button>
       </div>
     </div>
     <% }); %>
@@ -89,12 +120,11 @@
     <% } %>
   </div>
 
-  <!-- Referral -->
   <div class="referral-box">
     <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
       <div>
-        <h3 style="font-size:14px;font-weight:700;margin-bottom:4px">Your Referral Link</h3>
-        <p style="font-size:12px;color:var(--text-dim)">Share this link. When someone joins and upgrades, you earn +1 site credit.</p>
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:4px">Agency Referral Link</h3>
+        <p style="font-size:12px;color:var(--text-dim)">Share this with other agencies. When someone joins and upgrades, you earn +1 site slot.</p>
       </div>
       <div style="text-align:right">
         <div style="font-size:22px;font-weight:700;color:var(--gold)"><%= referrals.length %></div>
@@ -117,34 +147,30 @@
     <% } %>
   </div>
 
-  <!-- Plan upgrade -->
-  <% if (agency.plan === 'free' || agency.plan === 'starter') { %>
   <div class="card" style="margin-top:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
     <div>
-      <h3 style="font-size:14px;font-weight:700;margin-bottom:4px">Upgrade Your Plan</h3>
-      <p style="font-size:12px;color:var(--text-dim)">Get more site credits and unlock team features.</p>
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:4px">Agency Pricing</h3>
+      <p style="font-size:12px;color:var(--text-dim)">See per-site yearly pricing, hosted deploy, and bulk agency packs.</p>
     </div>
-    <a href="/plans" class="btn btn-gold">View Plans →</a>
+    <a href="/plans" class="btn btn-gold">View Plans</a>
   </div>
-  <% } %>
 
-  <!-- SFTP Settings -->
-  <div class="card" style="margin-top:24px">
-    <h3 style="font-size:14px;font-weight:700;margin-bottom:4px">Deployment Settings (SFTP)</h3>
-    <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px">Configure your hosting server for one-click deployment.</p>
+  <div class="card" id="settings" style="margin-top:24px">
+    <h3 style="font-size:14px;font-weight:700;margin-bottom:4px">Deploy Settings</h3>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px">Set up client hosting details for FTP delivery. Static-host providers can plug into the same deploy flow later.</p>
     <form id="sftpForm">
       <div class="form-grid">
         <div class="form-group">
-          <label class="form-label">SFTP Host</label>
+          <label class="form-label">FTP / SFTP Host</label>
           <input type="text" name="sftp_host" class="form-control" value="<%= agency.sftp_host || '' %>" placeholder="ftp.yourdomain.com">
         </div>
         <div class="form-group">
           <label class="form-label">Username</label>
-          <input type="text" name="sftp_user" class="form-control" value="<%= agency.sftp_user || '' %>" placeholder="u12345678">
+          <input type="text" name="sftp_user" class="form-control" value="<%= agency.sftp_user || '' %>" placeholder="hosting username">
         </div>
         <div class="form-group">
           <label class="form-label">Password</label>
-          <input type="password" name="sftp_pass" class="form-control" value="<%= agency.sftp_pass || '' %>" placeholder="••••••••">
+          <input type="password" name="sftp_pass" class="form-control" value="<%= agency.sftp_pass || '' %>" placeholder="********">
         </div>
         <div class="form-group">
           <label class="form-label">Base Path</label>
@@ -156,11 +182,10 @@
   </div>
 </div>
 
-<!-- Deploy Modal -->
 <div class="modal-overlay" id="deployModal">
   <div class="modal">
-    <div class="modal-title">Deploy Website</div>
-    <div class="modal-desc">Upload to your Hostinger server via SFTP.</div>
+    <div class="modal-title">Deploy Client Website</div>
+    <div class="modal-desc">Publish the current static website and get a live URL.</div>
     <div class="deploy-steps" id="deploySteps"></div>
     <div id="deployUrl"></div>
     <div class="modal-footer">
@@ -186,7 +211,7 @@ function hideDeployModal() {
 }
 
 async function deleteProject(pid) {
-  if (!confirm('Delete this project? This cannot be undone.')) return;
+  if (!confirm('Delete this client website? This cannot be undone.')) return;
   const res = await fetch('/projects/' + pid, { method: 'DELETE' });
   const data = await res.json();
   if (data.success) { showToast('Project deleted', 'success'); setTimeout(() => location.reload(), 800); }
@@ -203,7 +228,7 @@ async function saveSFTP() {
     body: JSON.stringify(data)
   });
   const result = await res.json();
-  if (result.success) showToast('SFTP settings saved', 'success');
+  if (result.success) showToast('Deploy settings saved', 'success');
   else showToast(result.error || 'Save failed', 'error');
 }
 </script>

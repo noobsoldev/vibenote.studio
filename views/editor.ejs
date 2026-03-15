@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title><%= project.client_name %> — Editor · Vibenote.studio</title>
+<title><%= project.client_name %> - Editor | VibeNote.studio</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
 body { overflow: hidden; }
@@ -12,101 +12,86 @@ body { overflow: hidden; }
 <body>
 
 <nav class="topnav">
-  <a href="/dashboard" class="topnav-logo" style="text-decoration:none">← Vibenote<span>.studio</span></a>
+  <a href="/dashboard" class="topnav-logo" style="text-decoration:none">&larr; VibeNote<span>.studio</span></a>
   <div class="topnav-right">
     <span class="badge badge-<%= project.status %>"><%= project.status %></span>
     <% if (project.deployment_url) { %>
-    <a href="<%= project.deployment_url %>" target="_blank" class="btn btn-ghost btn-sm">↗ Live Site</a>
+    <a href="<%= project.deployment_url %>" target="_blank" class="btn btn-ghost btn-sm">Live</a>
     <% } %>
   </div>
 </nav>
 
 <div class="editor-layout">
-
-  <!-- LEFT: Preview -->
   <div class="editor-preview">
     <div class="editor-toolbar">
       <input class="editor-toolbar-sitename" id="siteNameInput" value="<%= project.client_name %>">
       <div class="toolbar-sep"></div>
-      <button class="btn btn-ghost btn-sm" onclick="regenerateSite()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.02"/></svg>
-        Regenerate
-      </button>
+      <button class="btn btn-ghost btn-sm" onclick="regenerateSite()">Regenerate</button>
       <div class="toolbar-right">
-        <button id="redeployBtn" class="btn btn-outline btn-sm" style="display:none" onclick="showDeployModal()">
-          Redeploy
-        </button>
-        <button class="btn btn-ghost btn-sm" onclick="downloadHtml(<%= project.id %>)">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Export HTML
-        </button>
-        <button class="btn btn-gold btn-sm" onclick="showDeployModal()">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          Deploy
-        </button>
+        <button id="redeployBtn" class="btn btn-outline btn-sm" style="display:none" onclick="showDeployModal()">Redeploy</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadHtml(<%= project.id %>)">Export HTML</button>
+        <button class="btn btn-gold btn-sm" onclick="showDeployModal()">Deploy</button>
       </div>
     </div>
     <iframe class="preview-frame" id="previewFrame" src="/generate/<%= project.id %>/html" sandbox="allow-scripts allow-same-origin"></iframe>
   </div>
 
-  <!-- RIGHT: Chat Sidebar -->
   <aside class="editor-sidebar">
     <div class="sidebar-header">
       <div class="sidebar-project-name"><%= project.client_name %></div>
-      <div class="sidebar-project-status"><%= formData.industry || 'Website' %> · <%= project.status %></div>
+      <div class="sidebar-project-status"><%= formData.industry || 'Client website' %> | <%= project.status %></div>
     </div>
 
     <div class="chat-messages" id="chatMessages">
       <% chatHistory.forEach(msg => { %>
       <div class="chat-bubble bubble-<%= msg.role === 'user' ? 'user' : 'ai' %>">
         <% if (msg.role === 'assistant') { %>
-        <div class="bubble-ai-label">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-          Claude AI
-        </div>
+        <div class="bubble-ai-label">VibeNote AI</div>
         <% } %>
         <%- msg.message %>
       </div>
       <% }); %>
       <% if (chatHistory.length === 0) { %>
       <div class="chat-bubble bubble-ai">
-        <div class="bubble-ai-label">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-          Claude AI
-        </div>
-        Website generated for <strong><%= project.client_name %></strong>. Use the chat below to make changes — "make the hero taller", "add a WhatsApp button", "change font to serif", etc.
+        <div class="bubble-ai-label">VibeNote AI</div>
+        Client website generated for <strong><%= project.client_name %></strong>. Ask for changes like "tighten the hero copy", "add a FAQ", or "switch the accent color to dark green".
       </div>
       <% } %>
     </div>
 
     <div class="chat-input-area">
       <div class="chat-input-row">
-        <textarea class="chat-textarea" id="chatInput" placeholder="e.g. Make the hero section taller, change primary color to navy..." rows="1"></textarea>
-        <button class="chat-send-btn" id="chatSendBtn" onclick="sendChatMessage(<%= project.id %>)" title="Send (Enter)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        </button>
+        <textarea class="chat-textarea" id="chatInput" data-project-id="<%= project.id %>" placeholder="Describe the next client-facing edit..." rows="1"></textarea>
+        <button class="chat-send-btn" id="chatSendBtn" onclick="sendChatMessage(<%= project.id %>)" title="Send"></button>
       </div>
-      <div class="chat-hint">Press Enter to send · Shift+Enter for new line</div>
+      <div class="chat-hint">Press Enter to send | Shift+Enter for a new line</div>
     </div>
   </aside>
 </div>
 
-<!-- Deploy Modal -->
 <div class="modal-overlay" id="deployModal">
   <div class="modal">
-    <div class="modal-title">Deploy Website</div>
-    <div class="modal-desc">Upload <strong><%= project.client_name %></strong> to your Hostinger server via SFTP.</div>
+    <div class="modal-title">Deploy Client Website</div>
+    <div class="modal-desc">Publish <strong><%= project.client_name %></strong> and return a live URL.</div>
+    <div style="margin-bottom:14px">
+      <label class="form-label">Deploy Target</label>
+      <select class="form-control" id="deployProvider">
+        <option value="sftp">SFTP</option>
+        <option value="cloudflare">Cloudflare Pages</option>
+        <option value="export_html">Export HTML</option>
+      </select>
+    </div>
     <div class="deploy-steps" id="deploySteps">
-      <div class="deploy-step pending" id="dstep_0"><span class="step-icon">○</span> Connecting to server...</div>
-      <div class="deploy-step pending" id="dstep_1"><span class="step-icon">○</span> Creating directory...</div>
-      <div class="deploy-step pending" id="dstep_2"><span class="step-icon">○</span> Uploading index.html...</div>
-      <div class="deploy-step pending" id="dstep_3"><span class="step-icon">○</span> Site is Live!</div>
+      <div class="deploy-step pending" id="dstep_0"><span class="step-icon">o</span> Preparing static site bundle...</div>
+      <div class="deploy-step pending" id="dstep_1"><span class="step-icon">o</span> Connecting to deploy target...</div>
+      <div class="deploy-step pending" id="dstep_2"><span class="step-icon">o</span> Uploading files...</div>
+      <div class="deploy-step pending" id="dstep_3"><span class="step-icon">o</span> Returning live URL...</div>
     </div>
     <div id="deployUrl"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost btn-sm" onclick="downloadHtml(<%= project.id %>)">Export HTML Instead</button>
       <button class="btn btn-ghost btn-sm" id="deployCloseBtn" onclick="hideDeployModal()">Close</button>
-      <button class="btn btn-gold btn-sm" id="deployStartBtn" onclick="startDeploy()">Deploy Now →</button>
+      <button class="btn btn-gold btn-sm" id="deployStartBtn" onclick="startDeploy()">Deploy Now</button>
     </div>
   </div>
 </div>
@@ -116,10 +101,10 @@ body { overflow: hidden; }
 initEditor(<%= project.id %>);
 
 async function regenerateSite() {
-  if (!confirm('Regenerate will use 1 site credit and replace the current website. Continue?')) return;
+  if (!confirm('Regenerate will use 1 site slot and replace the current website. Continue?')) return;
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(10,10,10,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:2000';
-  overlay.innerHTML = '<div class="spinner"></div><div style="font-size:14px;font-weight:600">Regenerating website...</div>';
+  overlay.innerHTML = '<div class="spinner"></div><div style="font-size:14px;font-weight:600">Regenerating client website...</div>';
   document.body.appendChild(overlay);
   try {
     const res = await fetch('/generate/<%= project.id %>', { method: 'POST' });
@@ -129,7 +114,9 @@ async function regenerateSite() {
     } else {
       showToast(data.error || 'Regeneration failed', 'error');
     }
-  } catch (e) { showToast('Network error', 'error'); }
+  } catch (e) {
+    showToast('Network error', 'error');
+  }
   overlay.remove();
 }
 
@@ -138,7 +125,10 @@ function startDeploy() {
   if (deployStarted) return;
   deployStarted = true;
   document.getElementById('deployStartBtn').style.display = 'none';
-  deployProject(<%= project.id %>).then(() => { deployStarted = false; });
+  deployProject(<%= project.id %>).then(() => {
+    deployStarted = false;
+    document.getElementById('deployStartBtn').style.display = 'inline-flex';
+  });
 }
 
 document.getElementById('deployModal').addEventListener('click', function(e) {

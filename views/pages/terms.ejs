@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<%- include('../layout', { seo, baseUrl }) %>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:'Manrope',sans-serif;background:#0a0d12;color:#f5f7fb;line-height:1.7}a{text-decoration:none;color:inherit}.wrap{width:min(980px,calc(100% - 32px));margin:0 auto}.top{padding:24px 0;border-bottom:1px solid rgba(255,255,255,.08)}.top-in{display:flex;justify-content:space-between;align-items:center;gap:16px}.brand{font-size:22px;font-weight:800}.brand span{color:#d7b35d}.links{display:flex;gap:16px;flex-wrap:wrap;color:#9ea8bb}.hero{padding:64px 0 24px}.hero h1{font-size:clamp(36px,7vw,62px);line-height:1.04;margin:0 0 12px}.hero p{max-width:760px;color:#b2bccf}.section{padding:18px 0 42px}.card{background:#121722;border:1px solid rgba(255,255,255,.08);border-radius:24px;padding:28px;margin-top:18px}.card h2{margin:0 0 12px;font-size:28px}.card h3{margin:22px 0 8px;font-size:19px}.card p,.card li{color:#d9e1ef}.card ul{padding-left:20px}.muted{color:#9ea8bb}.footer{padding:30px 0 40px;border-top:1px solid rgba(255,255,255,.08)}.footer-links{display:flex;gap:14px;flex-wrap:wrap;color:#9ea8bb}@media (max-width:720px){.top-in{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-in">
+    <a href="/" class="brand">VibeNote<span>.studio</span></a>
+    <nav class="links" aria-label="Site links">
+      <a href="/docs">Docs</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href="/cookies">Cookies</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <p class="muted">Legal</p>
+      <h1>Terms of Service</h1>
+      <p>These terms govern how agencies access and use VibeNote to generate and deploy client websites.</p>
+    </div>
+  </section>
+  <section class="section">
+    <div class="wrap">
+      <div class="card">
+        <h2>Acceptable use</h2>
+        <ul>
+          <li>Use the platform only for lawful website projects and authorized client work.</li>
+          <li>Do not upload malware, infringing assets, or harmful code.</li>
+          <li>Do not attempt to abuse hosting, deployment, or AI generation systems.</li>
+        </ul>
+        <h3>Payment terms</h3>
+        <p>Paid plans, site credits, and subscriptions are billed according to the pricing presented at checkout. Agencies are responsible for timely payment and for applicable taxes.</p>
+        <h3>Subscription rules</h3>
+        <p>Plan limits, per-site pricing, and hosting access are governed by the purchased subscription term. Features may vary by plan.</p>
+      </div>
+      <div class="card">
+        <h2>Ownership of generated content</h2>
+        <p>Agencies retain ownership of the content and approved website assets they provide. Generated output is intended for agency and client website delivery workflows, subject to any third-party service limitations.</p>
+        <h3>Termination</h3>
+        <p>VibeNote may suspend or terminate access for violations of these terms, non-payment, or platform abuse. Agencies may stop using the service at any time, subject to any active billing commitments.</p>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="footer">
+  <div class="wrap top-in">
+    <div class="muted">Using VibeNote means you agree to these service terms.</div>
+    <div class="footer-links">
+      <a href="/docs">Docs</a>
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/terms">Terms of Service</a>
+      <a href="/cookies">Cookie Policy</a>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

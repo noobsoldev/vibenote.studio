@@ -1,49 +1,52 @@
 const express = require('express');
 const router = express.Router();
-const { getDb } = require('../db/database');
-const db = { prepare: (...a) => getDb().prepare(...a), exec: (...a) => getDb().exec(...a), transaction: (...a) => getDb().transaction(...a) };
+const { db } = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
+const { generateUniqueAgencySlug } = require('../utils/unique-slug');
 
-// GET /dashboard
-router.get('/', requireAuth, (req, res) => {
+const planLimits = { free: 1, starter: 1, growth: 10, agency: 50 };
+const appUrl = (process.env.APP_URL || process.env.BASE_URL || 'https://adswala.store').replace(/\/$/, '');
+
+router.get('/', requireAuth, async (req, res) => {
   try {
-    const agency = db.prepare('SELECT * FROM agencies WHERE id = ?').get(req.session.agencyId);
-    if (!agency) {
-      req.session.destroy();
-      return res.redirect('/login');
+    const agency = req.agency;
+    const displayName = agency.agency_name || agency.name;
+    const effectiveSlug = agency.slug || await generateUniqueAgencySlug(displayName, agency.id);
+
+    if (!agency.slug || !agency.agency_name || !agency.contact_email || !agency.user_id) {
+      await db().from('agencies').update({
+        slug: effectiveSlug,
+        agency_name: displayName,
+        contact_email: agency.contact_email || agency.email,
+        user_id: agency.user_id || agency.auth_user_id || null
+      }).eq('id', agency.id);
     }
 
-    const projects = db.prepare(`
-      SELECT * FROM projects WHERE agency_id = ? ORDER BY updated_at DESC
-    `).all(agency.id);
+    const { data: projects } = await db()
+      .from('projects')
+      .select('*')
+      .eq('agency_id', agency.id)
+      .order('updated_at', { ascending: false });
 
-    const referrals = db.prepare(`
-      SELECT r.*, a.name AS referred_name, a.email AS referred_email, a.plan AS referred_plan
-      FROM referrals r
-      JOIN agencies a ON a.id = r.referred_id
-      WHERE r.referrer_id = ?
-      ORDER BY r.created_at DESC
-    `).all(agency.id);
+    const { data: referrals } = await db()
+      .from('referrals')
+      .select('converted, referred:agencies!referrals_referred_id_fkey(name, email)')
+      .eq('referrer_id', agency.id)
+      .order('created_at', { ascending: false });
 
-    const creditsEarned = referrals.filter(r => r.credit_awarded).length;
-
-    const planLimits = { free: 1, starter: 1, growth: 10, agency: 50 };
-    const planLimit = planLimits[agency.plan] || 1;
-
-    const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    const referralRows = (referrals || []).map((row) => ({
+      converted: Boolean(row.converted),
+      referred_name: row.referred?.name || 'New signup',
+      referred_email: row.referred?.email || 'No email available'
+    }));
 
     res.render('dashboard', {
-      agency,
-      projects,
-      referrals,
-      creditsEarned,
-      planLimit,
-      baseUrl,
-      plans: {
-        starter: { name: 'Starter', price: '₹5,000', sites: 1 },
-        growth: { name: 'Growth', price: '₹40,000', sites: 10 },
-        agency: { name: 'Agency', price: '₹2,50,000', sites: 50 }
-      }
+      agency: { ...agency, slug: effectiveSlug, agency_name: displayName },
+      projects: projects || [],
+      planLimit: planLimits[agency.plan] || 1,
+      referrals: referralRows,
+      baseUrl: appUrl,
+      clientBriefLink: `${appUrl}/brief/${effectiveSlug}`
     });
   } catch (err) {
     console.error('Dashboard error:', err);
@@ -51,18 +54,23 @@ router.get('/', requireAuth, (req, res) => {
   }
 });
 
-// POST /dashboard/profile - update SFTP settings
-router.post('/profile', requireAuth, (req, res) => {
-  const { sftp_host, sftp_user, sftp_pass, sftp_base_path } = req.body;
+router.post('/profile', requireAuth, async (req, res) => {
   try {
-    db.prepare(`
-      UPDATE agencies SET sftp_host = ?, sftp_user = ?, sftp_pass = ?, sftp_base_path = ?
-      WHERE id = ?
-    `).run(sftp_host || null, sftp_user || null, sftp_pass || null, sftp_base_path || '/public_html', req.session.agencyId);
+    const { sftp_host, sftp_user, sftp_pass, sftp_base_path, country, currency } = req.body;
+    const { error } = await db()
+      .from('agencies')
+      .update({ sftp_host, sftp_user, sftp_pass, sftp_base_path, country, currency })
+      .eq('id', req.session.agencyId);
+
+    if (error) {
+      console.error('Dashboard profile save failed:', error);
+      return res.status(500).json({ error: 'Failed to save settings.' });
+    }
+
     res.json({ success: true });
   } catch (err) {
-    console.error('Profile update error:', err);
-    res.status(500).json({ error: 'Failed to update profile.' });
+    console.error('Dashboard profile fatal:', err);
+    res.status(500).json({ error: 'Failed to save settings.' });
   }
 });
 

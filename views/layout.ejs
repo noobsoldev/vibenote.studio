@@ -1,0 +1,33 @@
+<%
+const seoData = seo || {};
+const siteUrl = (baseUrl || 'https://vibenote.studio').replace(/\/$/, '');
+const canonicalUrl = seoData.canonical || `${siteUrl}${seoData.path || '/'}`;
+const pageTitle = seoData.title || 'VibeNote – AI Website Generator for Agencies';
+const pageDescription = seoData.description || 'VibeNote helps agencies generate, edit and deploy client websites instantly using AI.';
+const ogTitle = seoData.ogTitle || pageTitle;
+const ogDescription = seoData.ogDescription || pageDescription;
+const ogUrl = seoData.ogUrl || canonicalUrl;
+const ogType = seoData.ogType || 'website';
+const themeColor = seoData.themeColor || '#0a0d12';
+const schema = seoData.schema || {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'VibeNote',
+  url: siteUrl,
+  logo: `${siteUrl}/logo.png`
+};
+%>
+<meta charset="UTF-8">
+<title><%= pageTitle %></title>
+<meta name="description" content="<%= pageDescription %>" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="canonical" href="<%= canonicalUrl %>" />
+<meta property="og:title" content="<%= ogTitle %>" />
+<meta property="og:description" content="<%= ogDescription %>" />
+<meta property="og:type" content="<%= ogType %>" />
+<meta property="og:url" content="<%= ogUrl %>" />
+<meta name="google-site-verification" content="ADD_CODE_HERE" />
+<meta name="theme-color" content="<%= themeColor %>" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="alternate icon" href="/favicon.svg" />
+<script type="application/ld+json"><%- JSON.stringify(schema) %></script>

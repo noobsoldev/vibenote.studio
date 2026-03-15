@@ -2,92 +2,102 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Plans — Vibenote.studio</title>
+<title>Pricing - VibeNote.studio</title>
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
 <nav class="topnav">
-  <a href="/dashboard" class="topnav-logo" style="text-decoration:none">← Vibenote<span>.studio</span></a>
+  <a href="/dashboard" class="topnav-logo" style="text-decoration:none">&larr; VibeNote<span>.studio</span></a>
   <div class="topnav-right">
     <span class="badge badge-<%= agency.plan %>"><%= agency.plan %></span>
     <div class="agency-avatar"><%= agency.name.charAt(0).toUpperCase() %></div>
   </div>
 </nav>
 
-<div class="plans-page">
+<div class="plans-page" style="max-width:1100px">
   <div class="plans-header">
-    <h1>Choose Your Plan</h1>
-    <p style="color:var(--text-dim);font-size:14px">Monthly subscription. Cancel anytime. Credits reset every month.</p>
+    <h1>Agency pricing for small client website delivery</h1>
+    <p style="color:var(--text-dim);font-size:14px">Per-site yearly pricing for agencies handling landing pages, brochure websites, small business websites, and portfolio websites.</p>
   </div>
 
   <% if (reason === 'nocredits') { %>
-  <div class="alert alert-info" style="margin-bottom:28px;max-width:700px;margin-left:auto;margin-right:auto">
-    You've used all your site credits for this month. Upgrade to generate more websites.
+  <div class="alert alert-info" style="margin-bottom:28px;max-width:760px;margin-left:auto;margin-right:auto">
+    You've used all currently available site slots. Move to a bigger agency plan to deliver more client websites.
   </div>
   <% } %>
 
-  <div class="plans-grid">
-    <!-- Starter -->
+  <div class="plans-grid" style="grid-template-columns:repeat(2,1fr);max-width:900px;margin:0 auto">
     <div class="plan-card">
-      <div class="plan-name">Starter</div>
-      <div class="plan-price"><%= plans.starter.display %></div>
-      <div class="plan-cycle">per month</div>
+      <div class="plan-name">FTP Export Plan</div>
+      <div class="plan-price">&#8377;2,000</div>
+      <div class="plan-cycle">per site / year</div>
       <ul class="plan-features">
-        <li>1 site credit / month</li>
-        <li>AI-powered generation</li>
-        <li>Chat-based editing</li>
-        <li>SFTP deployment</li>
-        <li>Referral credits</li>
+        <li>Generate website</li>
+        <li>Unlimited edits</li>
+        <li>Download full HTML CSS JS</li>
+        <li>FTP deploy to client hosting</li>
+        <li>Access for 1 year</li>
       </ul>
-      <% if (agency.plan === 'starter') { %>
-      <button class="btn btn-outline btn-block" disabled>Current Plan</button>
-      <% } else { %>
-      <button class="btn btn-outline btn-block" onclick="subscribePlan('starter', '<%= plans.starter.planId %>')">Subscribe →</button>
-      <% } %>
+      <button class="btn btn-outline btn-block" onclick="subscribePlan('starter', '<%= plans.starter.planId %>')">Choose FTP Export</button>
     </div>
 
-    <!-- Growth -->
     <div class="plan-card popular">
-      <div class="plan-name">Growth</div>
-      <div class="plan-price"><%= plans.growth.display %></div>
-      <div class="plan-cycle">per month</div>
+      <div class="plan-name">Hosted Deploy Plan</div>
+      <div class="plan-price">&#8377;4,500</div>
+      <div class="plan-cycle">per site / year</div>
       <ul class="plan-features">
-        <li>10 site credits / month</li>
-        <li>Everything in Starter</li>
-        <li>Priority AI generation</li>
-        <li>White-label output</li>
-        <li>Batch projects</li>
+        <li>Generate website</li>
+        <li>Unlimited edits</li>
+        <li>One click deploy</li>
+        <li>VibeNote hosting</li>
+        <li>Free SSL</li>
+        <li>Custom domain support</li>
+        <li>1 year hosting</li>
       </ul>
-      <% if (agency.plan === 'growth') { %>
-      <button class="btn btn-gold btn-block" disabled>Current Plan</button>
-      <% } else { %>
-      <button class="btn btn-gold btn-block" onclick="subscribePlan('growth', '<%= plans.growth.planId %>')">Subscribe →</button>
-      <% } %>
-    </div>
-
-    <!-- Agency -->
-    <div class="plan-card">
-      <div class="plan-name">Agency</div>
-      <div class="plan-price"><%= plans.agency.display %></div>
-      <div class="plan-cycle">per month</div>
-      <ul class="plan-features">
-        <li>50 site credits / month</li>
-        <li>Everything in Growth</li>
-        <li>Dedicated support</li>
-        <li>Custom onboarding</li>
-        <li>Reseller rights</li>
-      </ul>
-      <% if (agency.plan === 'agency') { %>
-      <button class="btn btn-outline btn-block" disabled>Current Plan</button>
-      <% } else { %>
-      <button class="btn btn-outline btn-block" onclick="subscribePlan('agency', '<%= plans.agency.planId %>')">Subscribe →</button>
-      <% } %>
+      <button class="btn btn-gold btn-block" onclick="subscribePlan('growth', '<%= plans.growth.planId %>')">Choose Hosted Deploy</button>
     </div>
   </div>
 
-  <div style="text-align:center;margin-top:48px">
-    <p style="font-size:12px;color:var(--text-muted)">All plans billed monthly via Razorpay. Secure payment. Cancel anytime from your dashboard.</p>
+  <div class="card" style="margin-top:28px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div>
+        <h2 style="font-size:18px;margin-bottom:6px">Agency packs</h2>
+        <p style="font-size:13px;color:var(--text-dim)">Built for agencies delivering multiple client websites every year.</p>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted)">Typical client fee: &#8377;15,000 to &#8377;40,000</div>
+    </div>
+
+    <div class="plans-grid" style="grid-template-columns:repeat(2,1fr);margin-top:20px">
+      <div class="plan-card">
+        <div class="plan-name">10 sites pack</div>
+        <div class="plan-price">&#8377;35,000</div>
+        <div class="plan-cycle">per year</div>
+        <ul class="plan-features">
+          <li>For recurring small client website work</li>
+          <li>Ideal for active agencies</li>
+          <li>Great fit for brochure and landing page delivery</li>
+        </ul>
+        <button class="btn btn-outline btn-block" onclick="subscribePlan('growth', '<%= plans.growth.planId %>')">Choose 10 Sites Pack</button>
+      </div>
+
+      <div class="plan-card">
+        <div class="plan-name">50 sites pack</div>
+        <div class="plan-price">&#8377;1,50,000</div>
+        <div class="plan-cycle">per year</div>
+        <ul class="plan-features">
+          <li>For agencies using VibeNote as a delivery system</li>
+          <li>Supports high-volume client website output</li>
+          <li>Best economics for bulk delivery</li>
+        </ul>
+        <button class="btn btn-outline btn-block" onclick="subscribePlan('agency', '<%= plans.agency.planId %>')">Choose 50 Sites Pack</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:24px">
+    <h2 style="font-size:18px;margin-bottom:8px">Typical agency math</h2>
+    <p style="font-size:13px;color:var(--text-dim)">If the client pays &#8377;15,000 to &#8377;40,000 and your VibeNote Hosted Deploy cost is &#8377;4,500, your agency keeps the rest as profit.</p>
   </div>
 </div>
 

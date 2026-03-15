@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Briefs - VibeNote.studio</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.briefs-page { max-width: 900px; margin: 0 auto; padding: 32px 20px 80px; }
+.briefs-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; gap: 16px; flex-wrap: wrap; }
+.briefs-header h1 { font-size: 20px; font-weight: 700; }
+.briefs-header p { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+.brief-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 12px;
+  transition: border-color 0.2s;
+}
+.brief-card:hover { border-color: var(--gold); }
+.brief-avatar {
+  width: 48px; height: 48px;
+  background: linear-gradient(135deg, var(--gold), #8a6a1f);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 800; color: #0a0a0a;
+  flex-shrink: 0;
+}
+.brief-info { flex: 1; min-width: 0; }
+.brief-name { font-size: 15px; font-weight: 700; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brief-meta { font-size: 12px; color: var(--text-muted); display: flex; gap: 12px; flex-wrap: wrap; }
+.brief-status {
+  font-size: 10px; font-weight: 700; padding: 3px 10px;
+  border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;
+}
+.brief-status.brief_saved { background: rgba(100,100,200,0.15); color: #8888ff; border: 1px solid rgba(100,100,200,0.2); }
+.brief-status.brief_submitted { background: rgba(59,130,246,0.15); color: #71a7ff; border: 1px solid rgba(59,130,246,0.2); }
+.brief-status.generated { background: rgba(201,168,76,0.15); color: var(--gold); border: 1px solid rgba(201,168,76,0.2); }
+.brief-status.live { background: rgba(80,200,80,0.15); color: #5ec76a; border: 1px solid rgba(80,200,80,0.2); }
+.brief-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.empty-briefs {
+  text-align: center; padding: 80px 20px;
+  border: 1px dashed var(--border); border-radius: 12px;
+  color: var(--text-muted);
+}
+.empty-briefs .empty-icon { font-size: 40px; margin-bottom: 12px; }
+.empty-briefs h3 { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.empty-briefs p { font-size: 13px; margin-bottom: 20px; }
+.gen-modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75); z-index: 1000;
+  align-items: center; justify-content: center;
+}
+.gen-modal-overlay.show { display: flex; }
+.gen-modal {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 32px; max-width: 420px; width: 90%;
+  text-align: center;
+}
+.gen-modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.gen-modal p { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6; }
+.gen-modal .modal-actions { display: flex; gap: 10px; justify-content: center; }
+.gen-modal .credit-badge {
+  display: inline-block; background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.2);
+  color: var(--gold); font-size: 12px; font-weight: 700; padding: 4px 12px;
+  border-radius: 20px; margin-bottom: 20px;
+}
+.gen-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.9); z-index: 2000;
+  align-items: center; justify-content: center; flex-direction: column; gap: 20px;
+}
+.gen-overlay.show { display: flex; }
+.gen-overlay .spinner { width: 40px; height: 40px; border: 3px solid rgba(201,168,76,0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.gen-overlay .gen-text { color: var(--text); font-size: 15px; font-weight: 600; }
+.gen-overlay .gen-sub { color: var(--text-muted); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="/dashboard" class="topnav-logo" style="text-decoration:none">&larr; VibeNote<span>.studio</span></a>
+  <div class="topnav-right">
+    <span class="credits-badge"><%= agency.site_credits %> site slots</span>
+    <span class="badge badge-<%= agency.plan %>"><%= agency.plan %></span>
+    <a href="/logout" class="btn btn-ghost btn-sm">Sign Out</a>
+  </div>
+</nav>
+
+<div class="briefs-page">
+  <div class="briefs-header">
+    <div>
+      <h1>Client Briefs</h1>
+      <p>Save the structured brief first, then generate and deliver the client website when you're ready.</p>
+    </div>
+    <a href="/projects/new" class="btn btn-gold btn-sm">+ New Brief</a>
+  </div>
+
+  <% if (briefs.length === 0) { %>
+  <div class="empty-briefs">
+    <div class="empty-icon">[]</div>
+    <h3>No client briefs yet</h3>
+    <p>Start with a structured brief, save it, and generate the website when the client details are ready.</p>
+    <a href="/projects/new" class="btn btn-gold">Start a New Brief</a>
+  </div>
+  <% } else { %>
+  <% briefs.forEach(brief => {
+    const initial = (brief.client_name || '?').charAt(0).toUpperCase();
+    const industry = brief.industry || 'Client website';
+    const updatedDate = new Date(brief.updated_at).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+    const statusLabel = { brief_saved: 'Brief Saved', brief_submitted: 'Brief Submitted', generated: 'Generated', live: 'Live' }[brief.status] || brief.status;
+  %>
+  <div class="brief-card" id="brief_<%= brief.id %>">
+    <div class="brief-avatar"><%= initial %></div>
+    <div class="brief-info">
+      <div class="brief-name"><%= brief.client_name %></div>
+      <div class="brief-meta">
+        <span><%= industry %></span>
+        <span>Updated <%= updatedDate %></span>
+        <% if (brief.deployment_url) { %>
+        <span><a href="<%= brief.deployment_url %>" target="_blank" style="color:var(--gold)"><%= brief.deployment_url %></a></span>
+        <% } %>
+      </div>
+    </div>
+    <span class="brief-status <%= brief.status %>"><%= statusLabel %></span>
+    <div class="brief-actions">
+      <a href="/projects/<%= brief.id %>/onboarding" class="btn btn-outline btn-sm">Edit Brief</a>
+      <% if (brief.status === 'generated' || brief.status === 'live') { %>
+      <a href="/generate/<%= brief.id %>/editor" class="btn btn-gold btn-sm">Open Editor</a>
+      <% } else { %>
+      <button class="btn btn-gold btn-sm" onclick="confirmGenerate(<%= brief.id %>, '<%= brief.client_name.replace(/'/g, "\\'") %>')">Generate Website</button>
+      <% } %>
+    </div>
+  </div>
+  <% }); %>
+  <% } %>
+</div>
+
+<div class="gen-modal-overlay" id="genModal">
+  <div class="gen-modal">
+    <div class="credit-badge">1 Site Slot</div>
+    <h3>Generate website for <span id="modalClientName"></span>?</h3>
+    <p>This will use <strong>1 site slot</strong> from your account and turn the saved brief into a static client website.<br><br>You currently have <strong style="color:var(--gold)"><%= agency.site_credits %></strong> slot<%= agency.site_credits !== 1 ? 's' : '' %> available.</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-gold" id="modalConfirmBtn" onclick="doGenerate()">Generate Now</button>
+    </div>
+  </div>
+</div>
+
+<div class="gen-overlay" id="genOverlay">
+  <div class="spinner"></div>
+  <div class="gen-text" id="genOverlayText">Generating client website...</div>
+  <div class="gen-sub">This usually takes around 30 to 60 seconds.</div>
+</div>
+
+<script>
+let activeProjectId = null;
+
+function confirmGenerate(projectId, clientName) {
+  activeProjectId = projectId;
+  document.getElementById('modalClientName').textContent = clientName;
+  document.getElementById('genModal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('genModal').classList.remove('show');
+  activeProjectId = null;
+}
+
+async function doGenerate() {
+  if (!activeProjectId) return;
+  document.getElementById('genModal').classList.remove('show');
+  document.getElementById('genOverlay').classList.add('show');
+
+  try {
+    const res = await fetch(`/briefs/${activeProjectId}/generate`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('genOverlayText').textContent = 'Website generated. Opening editor...';
+      setTimeout(() => { window.location.href = `/generate/${data.projectId}/editor`; }, 800);
+    } else {
+      document.getElementById('genOverlay').classList.remove('show');
+      alert(data.error || 'Generation failed. Please try again.');
+    }
+  } catch (err) {
+    document.getElementById('genOverlay').classList.remove('show');
+    alert('Network error. Please try again.');
+  }
+}
+
+document.getElementById('genModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+
+</body>
+</html>
